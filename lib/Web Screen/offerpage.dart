@@ -210,7 +210,7 @@ class _OfferPageWebState extends State<OfferPageWeb> {
               ),
             ),
 
-            SizedBox(height: 100.h),
+            SizedBox(height: 400.h),
             BlueBiteBottomNavbar(),
           ],
         ),

@@ -9,6 +9,7 @@ import '../Mobile Screen/review.dart';
 import 'liveorder.dart';
 import 'offerpage.dart';
 import 'preebooked.dart';
+import 'review.dart';
 import 'webcart.dart';
 import 'webhomepage.dart';
 
@@ -82,7 +83,7 @@ class CustomNavbar extends StatelessWidget {
                 _navDialogItem(context, "Live Order", Icons.shopping_cart_outlined, "Inhouse"),
                 _navDialogItem(context, "Prebooked Order", Icons.table_bar, "Prebooking"),
                 _navItem("Offers", Icons.local_offer_outlined, () => Get.to(() => const OfferPageWeb())),
-                _navItem("Reviews", Icons.reviews, () => Get.to(() => const CustomerReview())),
+                _navItem("Reviews", Icons.reviews, () => Get.to(() => const CustomerReviewWeb())),
               ],
             ),
           ],

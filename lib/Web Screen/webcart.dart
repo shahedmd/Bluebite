@@ -38,6 +38,7 @@ class _CartPageWebState extends State<CartPageWeb> {
         child: Column(
           children: [
             CustomNavbar(),
+            SizedBox(height: 50.h,),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
               child: centeredContent(
