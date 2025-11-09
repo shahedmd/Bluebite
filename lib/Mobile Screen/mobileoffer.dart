@@ -18,7 +18,6 @@ class MobileOfferpage extends StatefulWidget {
 }
 
 class _MobileOfferpageState extends State<MobileOfferpage> {
-  Stream<QuerySnapshot>? offersData;
 
   @override
   @override

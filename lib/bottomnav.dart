@@ -1,3 +1,6 @@
+// ignore_for_file: avoid_unnecessary_containers
+
+import 'package:bluebite/Web%20Screen/customobject.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -33,14 +36,16 @@ class BlueBiteBottomNavbar extends StatelessWidget {
               
               ],
             )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(flex: 2, child: buildLogoAndAbout(themeColor)),
-                Expanded(flex: 1, child: buildLinks()),
-                Expanded(flex: 1, child: buildSocialIcons(themeColor)),
-              ],
-            ),
+          : centeredContent(
+            child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(flex: 2, child: buildLogoAndAbout(themeColor)),
+                  Expanded(flex: 1, child: buildLinks()),
+                  Expanded(flex: 1, child: buildSocialIcons(themeColor)),
+                ],
+              ),
+          ),
     );
   }}

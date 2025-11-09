@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'Mobile Screen/liveorder.dart';
+import 'Web Screen/liveorder.dart';
+import 'Web Screen/preebooked.dart';
 import 'cartcontroller.dart';
 import 'menuitems.dart';
 
@@ -188,10 +190,21 @@ class GetxCtrl extends GetxController {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => LiveOrderPage(
-            tableNo: selectedTable,
-            selectedtype: selectedOrderType,
-          ),
+          builder: (_) { final screenWidth = MediaQuery.of(context).size.width;
+      if (screenWidth < 800) {
+        // Mobile layout for phones and small tablets
+        return LiveOrderPage(
+          tableNo: selectedTable,
+          selectedtype: selectedOrderType,
+        );
+      } else {
+        // Web/Desktop layout
+        return LiveOrderPageWeb(
+          tableNo: selectedTable,
+          selectedtype: selectedOrderType,
+        );
+      }
+          }
         ),
       );
       return;
@@ -223,24 +236,41 @@ class GetxCtrl extends GetxController {
     colorText: Colors.white,
   );
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) {
-        if (selectedOrderType == 'Prebooking') {
-          return Prebookorder(
-            tableNo: selectedTable,
-            selectedtype: selectedOrderType,
-          );
-        } else {
-          return LiveOrderPage(
-            tableNo: selectedTable,
-            selectedtype: selectedOrderType,
-          );
-        }
-      },
-    ),
-  );
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) {
+      final screenWidth = MediaQuery.of(context).size.width;
+
+      final isMobile = screenWidth < 650;
+
+      if (selectedOrderType == 'Prebooking') {
+        // Prebooking page
+        return isMobile
+            ? Prebookorder(
+                tableNo: selectedTable,
+                selectedtype: selectedOrderType,
+              )
+            : PrebookOrderWeb(
+                tableNo: selectedTable,
+                selectedtype: selectedOrderType,
+              );
+      } else {
+        // Live order page
+        return isMobile
+            ? LiveOrderPage(
+                tableNo: selectedTable,
+                selectedtype: selectedOrderType,
+              )
+            : LiveOrderPageWeb(
+                tableNo: selectedTable,
+                selectedtype: selectedOrderType,
+              );
+      }
+    },
+  ),
+);
+
 }
 
 

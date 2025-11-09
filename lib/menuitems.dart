@@ -27,7 +27,7 @@ class MenuItem {
     'name': name,
     'category': category,
     'price': price,
-    'imageUrl': imgUrl,
+    'imgUrl': imgUrl,
     'quantity': quantity,
   };
 }

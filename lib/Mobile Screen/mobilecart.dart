@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:bluebite/Mobile%20Custom%20Object/customwidget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -98,7 +100,6 @@ final List<String> orderTypes = ['Inhouse', 'Prebooking'];
                     });
 
                     if (val == 'Prebooking') {
-                      // Ask date and time for prebooking
                       await _pickDateTime(context);
                     } else {
                       setState(() {

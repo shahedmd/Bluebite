@@ -13,6 +13,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 
+import '../Mobile Screen/mobilecart.dart';
+
 GetxCtrl controller = Get.put(GetxCtrl());
 
 CartController cartController = Get.put(CartController());
@@ -66,6 +68,15 @@ Widget customDrawer(BuildContext context) {
                 title: "Home",
                 onTap: () {
                   Get.to(()=> MobileHomepage());
+                },
+              ),
+
+               _drawerItem(
+                context,
+                icon: Icons.shop,
+                title: "Cart",
+                onTap: () {
+                  Get.to(()=> CartPageMobile());
                 },
               ),
 
@@ -136,7 +147,7 @@ Widget customDrawer(BuildContext context) {
               onPressed: () {
                 if (selectedTable != null) {
                   Navigator.pop(context);
-                  Get.to(() => LiveOrderPage(
+                  Get.off(() => LiveOrderPage(
                         tableNo: selectedTable!,
                         selectedtype: "Inhouse",
                       ));
@@ -217,7 +228,7 @@ Widget customDrawer(BuildContext context) {
               onPressed: () {
                 if (selectedTable != null) {
                   Navigator.pop(context);
-                  Get.to(() => Prebookorder(
+                  Get.off(() => Prebookorder(
                         tableNo: selectedTable!,
                         selectedtype: "Prebooking",
                       ));
