@@ -1,3 +1,4 @@
+import 'package:bluebite/Web%20Screen/webcart.dart';
 import 'package:bluebite/Web%20Screen/webhomepage.dart';
 import 'package:bluebite/bottomnav.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,6 +23,13 @@ class LiveOrderPageWeb extends StatelessWidget {
     final themeColor = Colors.blue.shade800;
 
     return Scaffold(
+       floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Get.to(()=> CartPageWeb());
+        },
+        backgroundColor: Colors.blue.shade900,
+        child: Icon(Icons.shop, color: Colors.white,),
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -292,7 +300,7 @@ class LiveOrderPageWeb extends StatelessWidget {
               ),
             ),
         
-            SizedBox(height: 400.h),
+            SizedBox(height: 650.h),
             BlueBiteBottomNavbar(),
           ],
         ),

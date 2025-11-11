@@ -4,15 +4,12 @@ import 'package:bluebite/Web%20Screen/customobject.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../Mobile Screen/mobileoffer.dart';
-import '../Mobile Screen/review.dart';
 import 'liveorder.dart';
 import 'offerpage.dart';
 import 'preebooked.dart';
 import 'review.dart';
 import 'webcart.dart';
 import 'webhomepage.dart';
-
 
 class CustomNavbar extends StatelessWidget {
   const CustomNavbar({super.key});
@@ -49,41 +46,70 @@ class CustomNavbar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 45.w,
-                  height: 45.w,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(12.r),
+            InkWell(
+              onTap: () => Get.to(() => WebHomepage()),
+              child: Row(
+                children: [
+                  Container(
+                    width: 45.w,
+                    height: 45.w,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.restaurant, color: Colors.white),
+                    ),
                   ),
-                  child: const Center(
-                    child: Icon(Icons.restaurant, color: Colors.white),
+                  SizedBox(width: 12.w),
+                  Text(
+                    "Blue Bite",
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
-                SizedBox(width: 12.w),
-                Text(
-                  "Blue Bite",
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-        
+
             // Menu items
             Row(
               children: [
-                _navItem("Home", Icons.home, () => Get.to(() => const WebHomepage())),
-                _navItem("Cart", Icons.shop, () => Get.to(() => const CartPageWeb())),
-                _navDialogItem(context, "Live Order", Icons.shopping_cart_outlined, "Inhouse"),
-                _navDialogItem(context, "Prebooked Order", Icons.table_bar, "Prebooking"),
-                _navItem("Offers", Icons.local_offer_outlined, () => Get.to(() => const OfferPageWeb())),
-                _navItem("Reviews", Icons.reviews, () => Get.to(() => const CustomerReviewWeb())),
+                _navItem(
+                  "Home",
+                  Icons.home,
+                  () => Get.to(() => const WebHomepage()),
+                ),
+                _navItem(
+                  "Cart",
+                  Icons.shop,
+                  () => Get.to(() => const CartPageWeb()),
+                ),
+                _navDialogItem(
+                  context,
+                  "Live Order",
+                  Icons.shopping_cart_outlined,
+                  "Inhouse",
+                ),
+                _navDialogItem(
+                  context,
+                  "Prebooked Order",
+                  Icons.table_bar,
+                  "Prebooking",
+                ),
+                _navItem(
+                  "Offers",
+                  Icons.local_offer_outlined,
+                  () => Get.to(() => const OfferPageWeb()),
+                ),
+                _navItem(
+                  "Reviews",
+                  Icons.reviews,
+                  () => Get.to(() => const CustomerReviewWeb()),
+                ),
               ],
             ),
           ],
@@ -103,7 +129,11 @@ class CustomNavbar extends StatelessWidget {
             SizedBox(width: 6.w),
             Text(
               title,
-              style: TextStyle(color: Colors.white, fontSize: 17.sp, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -112,7 +142,11 @@ class CustomNavbar extends StatelessWidget {
   }
 
   Widget _navDialogItem(
-      BuildContext context, String title, IconData icon, String selectedType) {
+    BuildContext context,
+    String title,
+    IconData icon,
+    String selectedType,
+  ) {
     return InkWell(
       onTap: () async {
         String? selectedTable;
@@ -178,19 +212,28 @@ class CustomNavbar extends StatelessWidget {
                     if (selectedTable != null) {
                       Navigator.pop(context);
                       if (selectedType == "Inhouse") {
-                        Get.off(() => LiveOrderPageWeb(
-                              tableNo: selectedTable!,
-                              selectedtype: "Inhouse",
-                            ));
+                        Get.to(
+                          () => LiveOrderPageWeb(
+                            tableNo: selectedTable!,
+                            selectedtype: "Inhouse",
+                          ),
+                          preventDuplicates: false,
+                        );
                       } else {
-                        Get.off(() => PrebookOrderWeb(
-                              tableNo: selectedTable!,
-                              selectedtype: "Prebooking",
-                            ));
+                        Get.to(
+                          () => PrebookOrderWeb(
+                            tableNo: selectedTable!,
+                            selectedtype: "Prebooking",
+                          ),
+                          preventDuplicates: false,
+                        );
                       }
                     }
                   },
-                  child: const Text("OK", style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    "OK",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             );
@@ -205,7 +248,11 @@ class CustomNavbar extends StatelessWidget {
             SizedBox(width: 6.w),
             Text(
               title,
-              style: TextStyle(color: Colors.white, fontSize: 17.sp, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),

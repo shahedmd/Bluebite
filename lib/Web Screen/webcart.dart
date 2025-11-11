@@ -98,7 +98,7 @@ class _CartPageWebState extends State<CartPageWeb> {
                           ),
                         ),
                       ),
-                      const Spacer(),
+                       SizedBox(width: 50.w),
                     TextButton.icon(
                       onPressed: () async => await _pickDateTime(context),
                       icon: const Icon(Icons.edit, size: 18),
@@ -136,7 +136,7 @@ class _CartPageWebState extends State<CartPageWeb> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(
                                   20.r,
-                                ), // more rounded
+                                ), 
                               ),
                               margin: EdgeInsets.symmetric(vertical: 12.h),
                               shadowColor: Colors.blue.shade100,
@@ -167,7 +167,6 @@ class _CartPageWebState extends State<CartPageWeb> {
                                     ),
                                     SizedBox(width: 20.w),
 
-                                    // Name & Price
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -194,7 +193,6 @@ class _CartPageWebState extends State<CartPageWeb> {
                                       ),
                                     ),
 
-                                    // Quantity Buttons + Delete
                                     Row(
                                       children: [
                                         IconButton(
@@ -316,7 +314,6 @@ class _CartPageWebState extends State<CartPageWeb> {
     );
   }
 
-  // helper method to select date and time
   Future<void> _pickDateTime(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,

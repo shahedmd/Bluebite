@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 
 import 'customobject.dart';
 import 'responsiveappbar.dart';
+import 'webcart.dart';
 
 class PrebookOrderWeb extends StatelessWidget {
   final String tableNo;
@@ -24,6 +25,13 @@ class PrebookOrderWeb extends StatelessWidget {
     const prebookingDuration = Duration(hours: 2);
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Get.to(()=> CartPageWeb());
+        },
+        backgroundColor: Colors.blue.shade900,
+        child: Icon(Icons.shop, color: Colors.white,),
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -284,7 +292,7 @@ class PrebookOrderWeb extends StatelessWidget {
               ),
             ),
 
-            SizedBox(height: 400.h),
+            SizedBox(height: 650.h),
             BlueBiteBottomNavbar(),
           ],
         ),

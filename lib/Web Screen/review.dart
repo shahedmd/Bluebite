@@ -35,7 +35,7 @@ class _CustomerReviewWebState extends State<CustomerReviewWeb> {
                     SizedBox(height: 20.h),
                     Center(
                       child: Text(
-                        "We believe in customer satisfaction. Our reviews show that!",
+                        "We believe in customer satisfaction. Our reviews shows that!",
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 16.sp),
                       ),
@@ -43,12 +43,16 @@ class _CustomerReviewWebState extends State<CustomerReviewWeb> {
                     SizedBox(height: 20.h),
 
                     StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('reviews')
-                          .snapshots(),
+                      stream:
+                          FirebaseFirestore.instance
+                              .collection('reviews')
+                              .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         }
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                           return const Center(
@@ -58,114 +62,148 @@ class _CustomerReviewWebState extends State<CustomerReviewWeb> {
 
                         final reviews = snapshot.data!.docs;
 
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 300.w,
-                            crossAxisSpacing: 20.w,
-                            mainAxisSpacing: 20.h,
-                            childAspectRatio: 0.7,
-                          ),
-                          itemCount: reviews.length,
-                          itemBuilder: (context, index) {
-                            var data = reviews[index].data() as Map<String, dynamic>;
-                            String title = data['title'] ?? '';
-                            String des = data['description'] ?? '';
-                            String imgUrl = data['imgUrl'] ?? '';
-                            Timestamp timedate = data['timestamp'];
-                            DateTime validDate = timedate.toDate();
+                        return Padding(
+                          padding: EdgeInsets.all(20.w),
+                          child: Wrap(
+                            spacing: 20.w, // horizontal space between cards
+                            runSpacing: 20.h, // vertical space between rows
+                            children:
+                                reviews.map((review) {
+                                  var data =
+                                      review.data() as Map<String, dynamic>;
+                                  String title = data['title'] ?? '';
+                                  String des = data['description'] ?? '';
+                                  String imgUrl = data['imgUrl'] ?? '';
+                                  Timestamp timedate = data['timestamp'];
+                                  DateTime validDate = timedate.toDate();
 
-                            return Card(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                              ),
-                              elevation: 6,
-                              shadowColor: Colors.blue.shade100,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.vertical(
-                                        top: Radius.circular(16.r)),
-                                    child: imgUrl.isNotEmpty
-                                        ? SizedBox(
-                                            height: 140.h,
-                                            child: Image.network(
-                                              imgUrl,
-                                              fit: BoxFit.cover,
-                                            ),
-                                          )
-                                        : Container(
-                                            height: 140.h,
-                                            color: Colors.grey[300],
-                                            child: Center(
-                                              child: Icon(
-                                                Icons.broken_image,
-                                                size: 40.sp,
-                                              ),
-                                            ),
-                                          ),
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.all(12.r),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          title,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16.sp,
-                                            color: themeColor,
-                                          ),
-                                        ),
-                                        SizedBox(height: 6.h),
-                                        Text(des, style: TextStyle(fontSize: 12.sp)),
-                                        SizedBox(height: 6.h),
-                                        Text(
-                                          "Date: $validDate",
-                                          style: TextStyle(
-                                            color: themeColor,
-                                            fontSize: 12.sp,
-                                          ),
-                                        ),
-                                        SizedBox(height: 10.h),
-                                        InkWell(
-                                          onTap: () {
-                                            Get.dialog(ReviewDialog());
-                                          },
-                                          borderRadius: BorderRadius.circular(30.r),
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(vertical: 12.h),
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(30.r),
-                                              gradient: const LinearGradient(
-                                                colors: [
-                                                  Color(0xFF1976D2),
-                                                  Color(0xFF42A5F5),
-                                                ],
-                                              ),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              "View Review",
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14.sp,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                  return Container(
+                                    constraints: BoxConstraints(
+                                      maxWidth: 250.w,
+                                      minWidth: 180.w,
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                                    child: Card(
+                                      clipBehavior: Clip.antiAlias,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          16.r,
+                                        ),
+                                      ),
+                                      elevation: 6,
+                                      shadowColor: Colors.blue.shade100,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        mainAxisSize:
+                                            MainAxisSize.min, // auto height
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(16.r),
+                                            ),
+                                            child:
+                                                imgUrl.isNotEmpty
+                                                    ? Image.network(
+                                                      imgUrl,
+                                                      fit: BoxFit.cover,
+                                                      height: 250.h,
+                                                    )
+                                                    : Container(
+                                                      color: Colors.grey[300],
+                                                      height: 250.h,
+                                                      child: Center(
+                                                        child: Icon(
+                                                          Icons.broken_image,
+                                                          size: 40.sp,
+                                                        ),
+                                                      ),
+                                                    ),
+                                          ),
+                                          Padding(
+                                            padding: EdgeInsets.all(12.r),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  title,
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16.sp,
+                                                    color: themeColor,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 6.h),
+                                                Text(
+                                                  des,
+                                                  maxLines: 4,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 12.sp,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 6.h),
+                                                Text(
+                                                  "Date: $validDate",
+                                                  style: TextStyle(
+                                                    color: themeColor,
+                                                    fontSize: 12.sp,
+                                                  ),
+                                                ),
+                                                SizedBox(height: 10.h),
+                                                InkWell(
+                                                  onTap:
+                                                      () => Get.dialog(
+                                                        ReviewDialog(),
+                                                      ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        30.r,
+                                                      ),
+                                                  child: Container(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          vertical: 12.h,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            30.r,
+                                                          ),
+                                                      gradient:
+                                                          const LinearGradient(
+                                                            colors: [
+                                                              Color(0xFF1976D2),
+                                                              Color(0xFF42A5F5),
+                                                            ],
+                                                          ),
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      "View Review",
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 14.sp,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                          ),
                         );
                       },
                     ),
@@ -174,7 +212,7 @@ class _CustomerReviewWebState extends State<CustomerReviewWeb> {
               ),
             ),
 
-            SizedBox(height: 100.h),
+            SizedBox(height: 650.h),
             BlueBiteBottomNavbar(),
           ],
         ),
@@ -182,7 +220,7 @@ class _CustomerReviewWebState extends State<CustomerReviewWeb> {
 
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Get.dialog(ReviewDialog());
+          Get.dialog(centeredContent(child: ReviewDialog()));
         },
         backgroundColor: themeColor,
         child: Icon(Icons.add, color: Colors.white),

@@ -249,6 +249,7 @@ Widget tabScreenWeb() {
                             ),
                             child: imageUrl.isNotEmpty
                                 ? Image.network(
+                                  
                                     imageUrl,
                                     fit: BoxFit.cover,
                                     width: double.infinity,
