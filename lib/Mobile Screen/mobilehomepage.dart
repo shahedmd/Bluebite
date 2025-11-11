@@ -30,7 +30,7 @@ class _MobileHomepageState extends State<MobileHomepage> {
         child: Column(
           children: [
             SizedBox(height: 20.h), 
-            customSlide(0.7, 180.h),
+            customSlide(0.7, 180),
         
             SizedBox(height: 10.h),
             customDot(),

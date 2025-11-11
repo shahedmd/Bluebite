@@ -41,7 +41,7 @@ Widget customDrawer(BuildContext context) {
                     width: 50.w,
                     height: 50.w,
                     decoration: BoxDecoration(
-                      color: Colors.white24, // placeholder for logo
+                      color: Colors.white24, 
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: const Center(
@@ -147,10 +147,11 @@ Widget customDrawer(BuildContext context) {
               onPressed: () {
                 if (selectedTable != null) {
                   Navigator.pop(context);
-                  Get.off(() => LiveOrderPage(
+                  Get.to(() => LiveOrderPage(
                         tableNo: selectedTable!,
                         selectedtype: "Inhouse",
-                      ));
+                      ),
+                      preventDuplicates: false);
                 }
               },
               child: const Text("OK", style: TextStyle(color: Colors.white),),
@@ -231,7 +232,8 @@ Widget customDrawer(BuildContext context) {
                   Get.off(() => Prebookorder(
                         tableNo: selectedTable!,
                         selectedtype: "Prebooking",
-                      ));
+                      ),
+                      preventDuplicates: false);
                 }
               },
               child: const Text("OK", style: TextStyle(color: Colors.white)),
@@ -483,123 +485,134 @@ Widget tabScreen() {
 
     return Padding(
       padding: EdgeInsets.all(20.r),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 0.8,
-        ),
-        itemCount: controller.menuItems.length,
-        itemBuilder: (context, index) {
+      child: Padding(
+  padding: EdgeInsets.all(10.0.r),
+  child: LayoutBuilder(
+    builder: (context, constraints) {
+      return Wrap(
+        spacing: 10.w, // horizontal spacing between cards
+        runSpacing: 10.h, // vertical spacing between rows
+        alignment: WrapAlignment.start,
+        children: List.generate(controller.menuItems.length, (index) {
           final item = controller.menuItems[index];
           final imageUrl = item.imgUrl;
 
-          return Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.r),
+          return ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: 130.w,
+              maxWidth: 180.w,
             ),
-
-            elevation: 5,
-            shadowColor: Colors.blue.withOpacity(0.3),
-
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: ClipRRect(
+            child: Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.r),
+              ),
+              elevation: 5,
+              shadowColor: Colors.blue.withOpacity(0.3),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
                     borderRadius: BorderRadius.vertical(
                       top: Radius.circular(16.r),
                     ),
-                    child:
-                        imageUrl.isNotEmpty
-                            ? Image.network(imageUrl, fit: BoxFit.cover)
-                            : Container(
-                              color: Colors.grey[300],
-                              child: Center(
-                                child: Icon(Icons.broken_image, size: 40.sp),
+                    child: imageUrl.isNotEmpty
+                        ? SizedBox(
+                            height: 150.h,
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover, // best for variable image sizes
+                            ),
+                          )
+                        : Container(
+                            height: 150.h,
+                            color: Colors.grey[300],
+                            child: Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                size: 40.sp,
                               ),
                             ),
+                          ),
                   ),
-                ),
-
-                Padding(
-                  padding: EdgeInsets.all(8.0.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15.sp,
-                          color: Colors.black87,
+                  Padding(
+                    padding: EdgeInsets.all(8.0.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15.sp,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        "৳${item.price}",
-                        style: TextStyle(
-                          color: Colors.blue.shade700,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14.sp,
+                        SizedBox(height: 4.h),
+                        Text(
+                          "৳${item.price}",
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14.sp,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-
-                // Add to Cart Button
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 8.h,
-                  ),
-                  child: InkWell(
-                    onTap: ()  {
-                       cartController.addToCart(item);
-                      Get.snackbar(
-                        "Added to Cart",
-                        "${item.name} added successfully!",
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: Colors.blue.shade600,
-                        colorText: Colors.white,
-                        margin: EdgeInsets.all(10.r),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(30.r),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 10.h),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30.r),
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 8.h,
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        cartController.addToCart(item);
+                        Get.snackbar(
+                          "Added to Cart",
+                          "${item.name} added successfully!",
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.blue.shade600,
+                          colorText: Colors.white,
+                          margin: EdgeInsets.all(10.r),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(30.r),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30.r),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                         ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        "Add to Cart",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
+                        alignment: Alignment.center,
+                        child: Text(
+                          "Add to Cart",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
-        },
-      ),
+        }),
+      );
+    },
+  ),
+)
+,
     );
   });
 }

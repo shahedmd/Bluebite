@@ -62,119 +62,128 @@ class _CustomerReviewState extends State<CustomerReview> {
                 final offers = snapshot.data!.docs;
 
                 return Padding(
-                  padding: EdgeInsets.all(10.0.r),
-                  child: GridView.builder(
-                    itemCount: offers.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 200.w,
-                      crossAxisSpacing: 15.w,
-                      mainAxisSpacing: 15.h,
-                      childAspectRatio: 0.72,
+  padding: EdgeInsets.all(10.0.r),
+  child: Wrap(
+    spacing: 15.w, // horizontal space between cards
+    runSpacing: 15.h, // vertical space between rows
+    alignment: WrapAlignment.start,
+    children: List.generate(offers.length, (index) {
+      var data = offers[index].data() as Map<String, dynamic>;
+      String title = data['title'] ?? '';
+      String des = data['description'] ?? '';
+      String imgUrl = data['imgUrl'] ?? '';
+      Timestamp timedate = data['timestamp'];
+      DateTime validDate = timedate.toDate();
+  
+      return ConstrainedBox(
+        constraints: BoxConstraints(
+          minWidth: 130.w,
+          maxWidth: 180.w,
+        ),
+        child: Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          elevation: 5,
+          shadowColor: Colors.blue.withOpacity(0.3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(16.r),
+                ),
+                child: imgUrl.isNotEmpty
+                    ? SizedBox(
+                        height: 150.h,
+                        child: Image.network(
+                          imgUrl,
+                          fit: BoxFit.cover, 
+                        ),
+                      )
+                    : Container(
+                        color: Colors.grey[300],
+                        height: 150.h,
+                        child: Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            size: 40.sp,
+                          ),
+                        ),
+                      ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(8.0.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15.sp,
+                        color: Colors.blue.shade700,
+                      ),
                     ),
-                    itemBuilder: (context, index) {
-                      var data = offers[index].data() as Map<String, dynamic>;
-                      String title = data['title'] ?? '';
-                      String des = data['description'] ?? '';
-
-                      String imgUrl = data['imgUrl'] ?? '';
-                      Timestamp timedate = data['timestamp'];
-                      DateTime validDate = timedate.toDate();
-
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                        elevation: 5,
-                        shadowColor: Colors.blue.withOpacity(0.3),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min, //
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16.r),
-                              ),
-                              child:
-                                  imgUrl.isNotEmpty
-                                      ? SizedBox(height: 120.h,
-                                        child: Image.network(imgUrl, fit: BoxFit.cover, ))
-                                      : Container(
-                                        color: Colors.grey[300],
-                                        height: 120.h,
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.broken_image,
-                                            size: 40.sp,
-                                          ),
-                                        ),
-                                      ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.all(0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min, //
-                                children: [
-                                  Text(
-                                    title,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15.sp,
-                                      color: Colors.blue.shade700,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(des, style: TextStyle(fontSize: 11.sp)),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    "date: $validDate",
-                                    style: TextStyle(
-                                      color: Colors.blue.shade700,
-                                      fontSize: 12.sp,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 8.h,
-                              ),
-                              child: InkWell(
-                                onTap: () {},
-                                borderRadius: BorderRadius.circular(30.r),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(30.r),
-                                    gradient: const LinearGradient(
-                                      colors: [
- Color(0xFF1976D2),
-                                        Color(0xFF42A5F5),
-                                      ],
-                                    ),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    "View Rreview",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    SizedBox(height: 4.h),
+                    Text(
+                      des,
+                      style: TextStyle(fontSize: 11.sp),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      "Date: ${validDate.toLocal()}",
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 10.w,
+                  vertical: 8.h,
+                ),
+                child: InkWell(
+                  onTap: () {},
+                  borderRadius: BorderRadius.circular(30.r),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 10.h),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30.r),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF1976D2),
+                          Color(0xFF42A5F5),
+                        ],
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      "View Review",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                );
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }),
+  ),
+);
+
               },
             ),
           ],
