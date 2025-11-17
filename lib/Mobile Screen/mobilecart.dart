@@ -20,7 +20,7 @@ class _CartPageMobileState extends State<CartPageMobile> {
   final GetxCtrl controller = Get.put(GetxCtrl());
 
   final List<String> tables = List.generate(20, (index) => '${index + 1}');
-final List<String> orderTypes = ['Inhouse', 'Prebooking'];
+  final List<String> orderTypes = ['Inhouse', 'Prebooking'];
 
   String selectedTable = '1';
   String selectedOrderType = 'Inhouse';
@@ -36,12 +36,13 @@ final List<String> orderTypes = ['Inhouse', 'Prebooking'];
         width: 200.w,
         height: 56.h,
         child: FloatingActionButton.extended(
-          onPressed: () => controller.confirmOrder(
-            selectedTable,
-            selectedOrderType,
-            context,
-            selectedDateTime,
-          ),
+          onPressed:
+              () => controller.confirmOrder(
+                selectedTable,
+                selectedOrderType,
+                context,
+                selectedDateTime,
+              ),
           backgroundColor: themeColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -76,12 +77,15 @@ final List<String> orderTypes = ['Inhouse', 'Prebooking'];
               children: [
                 DropdownButton<String>(
                   value: selectedTable,
-                  items: tables
-                      .map((t) => DropdownMenuItem(
-                            value: t,
-                            child: Text('Table $t'),
-                          ))
-                      .toList(),
+                  items:
+                      tables
+                          .map(
+                            (t) => DropdownMenuItem(
+                              value: t,
+                              child: Text('Table $t'),
+                            ),
+                          )
+                          .toList(),
                   onChanged: (val) {
                     setState(() {
                       selectedTable = val!;
@@ -91,9 +95,12 @@ final List<String> orderTypes = ['Inhouse', 'Prebooking'];
                 SizedBox(width: 20.w),
                 DropdownButton<String>(
                   value: selectedOrderType,
-                  items: orderTypes
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                      .toList(),
+                  items:
+                      orderTypes
+                          .map(
+                            (t) => DropdownMenuItem(value: t, child: Text(t)),
+                          )
+                          .toList(),
                   onChanged: (val) async {
                     setState(() {
                       selectedOrderType = val!;
@@ -132,7 +139,7 @@ final List<String> orderTypes = ['Inhouse', 'Prebooking'];
                       onPressed: () async => await _pickDateTime(context),
                       icon: const Icon(Icons.edit, size: 18),
                       label: const Text('Change'),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -159,32 +166,56 @@ final List<String> orderTypes = ['Inhouse', 'Prebooking'];
                         margin: EdgeInsets.symmetric(vertical: 6.h),
                         child: ListTile(
                           title: Text(
-                            item.name,
+                            item.name +
+                                (item.selectedVariant != null
+                                    ? " (${item.selectedVariant!.size})"
+                                    : ""),
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                          subtitle: Text(
-                            'Qty: ${item.quantity} - ${item.price * item.quantity} BDT',
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Show variant price if exists
+                              if (item.selectedVariant != null)
+                                Text(
+                                  "Variant Price: ${item.selectedVariant!.price} BDT",
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+
+                              // Item total price
+                              Text(
+                                "Qty: ${item.quantity} — "
+                                "${(item.selectedVariant != null ? item.selectedVariant!.price : item.price ?? 0) * item.quantity} BDT",
+                                style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
                                 icon: Icon(Icons.remove, color: themeColor),
-                                onPressed: () =>
-                                    cartController.decreaseQuantity(item),
+                                onPressed:
+                                    () => cartController.decreaseQuantity(item),
                               ),
                               IconButton(
                                 icon: Icon(Icons.add, color: themeColor),
-                                onPressed: () =>
-                                    cartController.increaseQuantity(item),
+                                onPressed:
+                                    () => cartController.increaseQuantity(item),
                               ),
                               IconButton(
                                 icon: Icon(
                                   Icons.delete,
                                   color: Colors.red.shade700,
                                 ),
-                                onPressed: () =>
-                                    cartController.removeFromCart(item),
+                                onPressed:
+                                    () => cartController.removeFromCart(item),
                               ),
                             ],
                           ),

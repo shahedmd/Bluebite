@@ -38,7 +38,7 @@ class _CartPageWebState extends State<CartPageWeb> {
         child: Column(
           children: [
             CustomNavbar(),
-            SizedBox(height: 50.h,),
+            SizedBox(height: 50.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
               child: centeredContent(
@@ -98,12 +98,12 @@ class _CartPageWebState extends State<CartPageWeb> {
                           ),
                         ),
                       ),
-                       SizedBox(width: 50.w),
+                    SizedBox(width: 50.w),
                     TextButton.icon(
                       onPressed: () async => await _pickDateTime(context),
                       icon: const Icon(Icons.edit, size: 18),
                       label: const Text('Change'),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -130,13 +130,24 @@ class _CartPageWebState extends State<CartPageWeb> {
                             ),
                           ),
                           SizedBox(height: 16.h),
-                          ...cartController.cartItems.map(
-                            (item) => Card(
+                          ...cartController.cartItems.map((item) {
+                            final bool hasVariant =
+                                item.selectedVariant != null;
+
+                            final double unitPrice =
+                                hasVariant
+                                    ? item.selectedVariant!.price
+                                    : item.price ?? 0;
+
+                            final String variantText =
+                                hasVariant
+                                    ? "(${item.selectedVariant!.size})"
+                                    : "";
+
+                            return Card(
                               elevation: 6,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  20.r,
-                                ), 
+                                borderRadius: BorderRadius.circular(20.r),
                               ),
                               margin: EdgeInsets.symmetric(vertical: 12.h),
                               shadowColor: Colors.blue.shade100,
@@ -145,7 +156,7 @@ class _CartPageWebState extends State<CartPageWeb> {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    // Product Image
+                                    /// IMAGE ------------------------------
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(16.r),
                                       child: Container(
@@ -165,15 +176,18 @@ class _CartPageWebState extends State<CartPageWeb> {
                                                 ),
                                       ),
                                     ),
+
                                     SizedBox(width: 20.w),
 
+                                    /// ITEM DETAILS ------------------------------
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
+                                          /// Name + Variant
                                           Text(
-                                            item.name,
+                                            "${item.name} $variantText",
                                             style: TextStyle(
                                               fontSize: 18.sp,
                                               fontWeight: FontWeight.bold,
@@ -181,18 +195,33 @@ class _CartPageWebState extends State<CartPageWeb> {
                                             ),
                                           ),
                                           SizedBox(height: 8.h),
+
+                                          /// Price display
                                           Text(
-                                            '${item.quantity} x ${item.price} BDT',
+                                            "${item.quantity} × $unitPrice BDT",
                                             style: TextStyle(
                                               fontSize: 14.sp,
                                               color: Colors.grey.shade700,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
+
+                                          SizedBox(height: 4.h),
+
+                                          /// Total price of this line item
+                                          Text(
+                                            "Subtotal: ${unitPrice * item.quantity} BDT",
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: Colors.black87,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
 
+                                    /// BUTTONS ------------------------------
                                     Row(
                                       children: [
                                         IconButton(
@@ -227,8 +256,8 @@ class _CartPageWebState extends State<CartPageWeb> {
                                   ],
                                 ),
                               ),
-                            ),
-                          ),
+                            );
+                          }),
                         ],
                       ),
                     ),

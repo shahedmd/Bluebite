@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:bluebite/Mobile%20Screen/liveorder.dart';
 import 'package:bluebite/Mobile%20Screen/mobilehomepage.dart';
@@ -14,12 +14,238 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 
 import '../Mobile Screen/mobilecart.dart';
+import '../menuitems.dart';
+
+
+class DrawerControllerX extends GetxController {
+  var selectedTable = RxnString(); // nullable reactive string
+  var selectedSlot = Rxn<DateTime>(); // nullable reactive DateTime
+}
 
 GetxCtrl controller = Get.put(GetxCtrl());
 
 CartController cartController = Get.put(CartController());
 
+
+
 Widget customDrawer(BuildContext context) {
+  final drawerCtrl = Get.put(DrawerControllerX());
+
+  final primaryBlue = Color(0xFF1976D2);
+
+  Widget drawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: FaIcon(icon, color: Colors.white, size: 20.sp),
+      title: Text(
+        title,
+        style: TextStyle(color: Colors.white, fontSize: 16.sp),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Future<void> showInhouseDialog() async {
+    drawerCtrl.selectedTable.value = null;
+    await Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          "Select Table Number",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: primaryBlue,
+          ),
+        ),
+        content: Obx(() {
+          return DropdownButtonFormField<String>(
+            value: drawerCtrl.selectedTable.value,
+            hint: const Text("Choose table"),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+            items: List.generate(
+              20,
+              (index) => DropdownMenuItem(
+                value: (index + 1).toString(),
+                child: Text("Table ${(index + 1)}"),
+              ),
+            ),
+            onChanged: (value) {
+              drawerCtrl.selectedTable.value = value;
+            },
+          );
+        }),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+            onPressed: () {
+              if (drawerCtrl.selectedTable.value != null) {
+                Get.back();
+                Get.to(
+                  () => LiveOrderPage(
+                    tableNo: drawerCtrl.selectedTable.value!,
+                    selectedtype: "Inhouse",
+                  ),
+                  preventDuplicates: false,
+                );
+              } else {
+                Get.snackbar(
+                  'Missing Info',
+                  'Please select a table',
+                  backgroundColor: Colors.red.shade300,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            child: const Text("OK", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> showPrebookDialog() async {
+    drawerCtrl.selectedTable.value = null;
+    drawerCtrl.selectedSlot.value = null;
+
+    await Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          "Select Table & Timeslot",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: primaryBlue,
+          ),
+        ),
+        content: Obx(() {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Table dropdown
+              DropdownButtonFormField<String>(
+                value: drawerCtrl.selectedTable.value,
+                hint: const Text("Choose table"),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+                items: List.generate(
+                  20,
+                  (index) => DropdownMenuItem(
+                    value: (index + 1).toString(),
+                    child: Text("Table ${(index + 1)}"),
+                  ),
+                ),
+                onChanged: (value) {
+                  drawerCtrl.selectedTable.value = value;
+                },
+              ),
+              SizedBox(height: 12.h),
+              // Timeslot picker
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade100,
+                  padding: EdgeInsets.symmetric(vertical: 7.h, horizontal: 7.w),
+                ),
+                onPressed: () async {
+                  DateTime now = DateTime.now();
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: now,
+                    firstDate: now,
+                    lastDate: now.add(const Duration(days: 365)),
+                  );
+                  if (date != null) {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay(hour: now.hour, minute: now.minute),
+                    );
+                    if (time != null) {
+                      drawerCtrl.selectedSlot.value = DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        time.hour,
+                        time.minute,
+                      );
+                    }
+                  }
+                },
+                child: Text(
+                  drawerCtrl.selectedSlot.value != null
+                      ? "Selected: ${drawerCtrl.selectedSlot.value!.day}/${drawerCtrl.selectedSlot.value!.month}/${drawerCtrl.selectedSlot.value!.year} ${drawerCtrl.selectedSlot.value!.hour.toString().padLeft(2, '0')}:${drawerCtrl.selectedSlot.value!.minute.toString().padLeft(2, '0')}"
+                      : "Select Timeslot",
+                  style: TextStyle(color: Colors.black87, fontSize: 11.sp),
+                ),
+              ),
+            ],
+          );
+        }),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+            onPressed: () {
+              if (drawerCtrl.selectedTable.value != null &&
+                  drawerCtrl.selectedSlot.value != null) {
+                Get.back();
+                Get.to(
+                  () => Prebookorder(
+                    tableNo: drawerCtrl.selectedTable.value!,
+                    selectedtype: "Prebooking",
+                    timeslot: drawerCtrl.selectedSlot.value!,
+                  ),
+                  preventDuplicates: false,
+                );
+              } else {
+                Get.snackbar(
+                  'Missing Info',
+                  'Please select both table and timeslot',
+                  backgroundColor: Colors.red.shade300,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            child: const Text("OK", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   return Drawer(
     child: Container(
       decoration: const BoxDecoration(
@@ -41,11 +267,11 @@ Widget customDrawer(BuildContext context) {
                     width: 50.w,
                     height: 50.w,
                     decoration: BoxDecoration(
-                      color: Colors.white24, 
+                      color: Colors.white24,
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: const Center(
-                      child: Icon(Icons.restaurant, color: Colors.white),
+                      child: FaIcon(FontAwesomeIcons.utensils, color: Colors.white),
                     ),
                   ),
                   SizedBox(width: 12.w),
@@ -62,210 +288,39 @@ Widget customDrawer(BuildContext context) {
               ),
               SizedBox(height: 40.h),
 
-              _drawerItem(
-                context,
-                icon: Icons.home,
+              drawerItem(
+                icon: FontAwesomeIcons.house,
                 title: "Home",
-                onTap: () {
-                  Get.to(()=> MobileHomepage());
-                },
+                onTap: () => Get.to(() => MobileHomepage()),
               ),
-
-               _drawerItem(
-                context,
-                icon: Icons.shop,
+              drawerItem(
+                icon: FontAwesomeIcons.cartShopping,
                 title: "Cart",
-                onTap: () {
-                  Get.to(()=> CartPageMobile());
-                },
+                onTap: () => Get.to(() => CartPageMobile()),
               ),
-
-
-              _drawerItem(
-  context,
-  icon: Icons.shopping_cart_outlined,
-  title: "Live Order",
-  onTap: () async {
-    String? selectedTable;
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
-          ),
-          title: const Text(
-            "Select Table Number",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1976D2),
-            ),
-          ),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return DropdownButtonFormField<String>(
-                value: selectedTable,
-                hint: const Text("Choose table"),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                items: List.generate(
-                  20,
-                  (index) => DropdownMenuItem(
-                    value: (index + 1).toString(),
-                    child: Text("Table ${(index + 1)}"),
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    selectedTable = value;
-                  });
-                },
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "Cancel",
-                style: TextStyle(color: Colors.grey),
+              drawerItem(
+                icon: FontAwesomeIcons.bowlFood,
+                title: "Inhouse Order Status",
+                onTap: showInhouseDialog,
               ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1976D2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
+              drawerItem(
+                icon: FontAwesomeIcons.calendarCheck,
+                title: "Prebooked Order Status",
+                onTap: showPrebookDialog,
               ),
-              onPressed: () {
-                if (selectedTable != null) {
-                  Navigator.pop(context);
-                  Get.to(() => LiveOrderPage(
-                        tableNo: selectedTable!,
-                        selectedtype: "Inhouse",
-                      ),
-                      preventDuplicates: false);
-                }
-              },
-              child: const Text("OK", style: TextStyle(color: Colors.white),),
-            ),
-          ],
-        );
-      },
-    );
-  },
-),
-
-              _drawerItem(
-  context,
-  icon: Icons.shopping_cart_outlined,
-  title: "Prebooked Order",
-  onTap: () async {
-    String? selectedTable;
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
-          ),
-          title: const Text(
-            "Select Table Number",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1976D2),
-            ),
-          ),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return DropdownButtonFormField<String>(
-                value: selectedTable,
-                hint: const Text("Choose table"),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                items: List.generate(
-                  20,
-                  (index) => DropdownMenuItem(
-                    value: (index + 1).toString(),
-                    child: Text("Table ${(index + 1)}"),
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    selectedTable = value;
-                  });
-                },
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "Cancel",
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1976D2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-              onPressed: () {
-                if (selectedTable != null) {
-                  Navigator.pop(context);
-                  Get.off(() => Prebookorder(
-                        tableNo: selectedTable!,
-                        selectedtype: "Prebooking",
-                      ),
-                      preventDuplicates: false);
-                }
-              },
-              child: const Text("OK", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  },
-),
-
-    
-              _drawerItem(
-                context,
-                icon: Icons.local_offer_outlined,
+              drawerItem(
+                icon: FontAwesomeIcons.tag,
                 title: "Offers",
-                onTap: () {
-                  Get.to(()=> MobileOfferpage());
-                },
+                onTap: () => Get.to(() => MobileOfferpage()),
               ),
-              _drawerItem(
-                context,
-                icon: Icons.reviews,
+              drawerItem(
+                icon: FontAwesomeIcons.star,
                 title: "Reviews",
-                onTap: () {
-                  Get.to(()=> CustomerReview());
-                },
+                onTap: () => Get.to(() => CustomerReview()),
               ),
 
               const Spacer(),
 
-              // Footer
               Divider(color: Colors.white54, thickness: 1),
               SizedBox(height: 8.h),
               Center(
@@ -282,8 +337,9 @@ Widget customDrawer(BuildContext context) {
   );
 }
 
+
 // Drawer Item Widget
-Widget _drawerItem(
+Widget drawerItem(
   BuildContext context, {
   required IconData icon,
   required String title,
@@ -342,10 +398,16 @@ PreferredSizeWidget customAppBar(BuildContext context) {
             ],
           ),
           child: TextField(
+            onChanged: (value) {
+              controller.searchQuery.value = value;
+              controller.searchProducts(value);
+            },
             textAlignVertical: TextAlignVertical.center,
             decoration: InputDecoration(
-              contentPadding: EdgeInsets.symmetric(vertical: 14.h),
-              prefixIcon: Icon(Icons.search, color: Color(0xFF1976D2)),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: 14.h,
+                horizontal: 10.w,
+              ),
               hintText: "Search...",
               border: InputBorder.none,
               hintStyle: TextStyle(fontSize: 16.sp),
@@ -435,10 +497,15 @@ Widget tabitems() {
       spacing: 10.w,
       runSpacing: 10.h,
       children: List.generate(controller.tabs.length, (index) {
-        bool isSelected = controller.tabindex.value == index;
+        bool isSelected =
+            controller.searchQuery.value.isEmpty &&
+            controller.tabindex.value == index;
         String categoryName = controller.tabs[index];
         return GestureDetector(
           onTap: () {
+            controller.searchCtrl.clear();
+            controller.searchQuery.value = "";
+
             controller.selectedCategory.value = categoryName;
             controller.fetchMenuItems(categoryName);
             controller.tabindex.value = index;
@@ -484,252 +551,310 @@ Widget tabScreen() {
     }
 
     return Padding(
-      padding: EdgeInsets.all(20.r),
-      child: Padding(
-  padding: EdgeInsets.all(10.0.r),
-  child: LayoutBuilder(
-    builder: (context, constraints) {
-      return Wrap(
-        spacing: 10.w, // horizontal spacing between cards
-        runSpacing: 10.h, // vertical spacing between rows
-        alignment: WrapAlignment.start,
-        children: List.generate(controller.menuItems.length, (index) {
-          final item = controller.menuItems[index];
-          final imageUrl = item.imgUrl;
-
-          return ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: 130.w,
-              maxWidth: 180.w,
-            ),
-            child: Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.r),
-              ),
-              elevation: 5,
-              shadowColor: Colors.blue.withOpacity(0.3),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(16.r),
-                    ),
-                    child: imageUrl.isNotEmpty
-                        ? SizedBox(
-                            height: 150.h,
-                            child: Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover, // best for variable image sizes
+      padding: EdgeInsets.all(10.0.r),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Wrap(
+            spacing: 10.w,
+            runSpacing: 10.h,
+            alignment: WrapAlignment.start,
+            children: List.generate(controller.menuItems.length, (index) {
+              final item = controller.menuItems[index];
+              final imageUrl = item.imgUrl;
+    
+              return ConstrainedBox(
+                constraints: BoxConstraints(minWidth: 130.w, maxWidth: 180.w),
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                  elevation: 5,
+                  shadowColor: Colors.blue.withOpacity(0.3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipRRect(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(16.r)),
+                        child: imageUrl.isNotEmpty
+                            ? SizedBox(
+                                height: 150.h,
+                                child: Image.network(imageUrl, fit: BoxFit.cover),
+                              )
+                            : Container(
+                                height: 150.h,
+                                color: Colors.grey[300],
+                                child: Center(
+                                  child: Icon(Icons.broken_image, size: 40.sp),
+                                ),
+                              ),
+                      ),
+    
+                      // -------- ITEM NAME & PRICE -------- //
+                      Padding(
+                        padding: EdgeInsets.all(8.0.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15.sp,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          )
-                        : Container(
-                            height: 150.h,
-                            color: Colors.grey[300],
-                            child: Center(
-                              child: Icon(
-                                Icons.broken_image,
-                                size: 40.sp,
+                            SizedBox(height: 4.h),
+    
+                            // Show minimum price if variants exist
+                            Text(
+                              item.variants != null && item.variants!.isNotEmpty
+                                  ? "From ৳${item.variants!.first.price}"
+                                  : "৳${item.price ?? 0}",
+                              style: TextStyle(
+                                color: Colors.blue.shade700,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+    
+                      // -------- ADD TO CART BUTTON -------- //
+                      Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                        child: InkWell(
+                          onTap: () {
+                            if (item.variants != null &&
+                                item.variants!.isNotEmpty) {
+                              // SHOW VARIANT SELECTOR
+                              showModalBottomSheet(
+                                context: context,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(20.r),
+                                  ),
+                                ),
+                                builder: (_) {
+                                  return VariantSelectorSheet(
+                                    item: item,
+                                    onVariantSelected: (variant) {
+                                      cartController.addVariantToCart(
+                                        item,
+                                       variant, // NEW
+                                      );
+    
+                                      Get.back();
+                                      Get.snackbar(
+                                        "Added to Cart",
+                                        "${item.name} (${variant.size}) added!",
+                                        snackPosition: SnackPosition.BOTTOM,
+                                        backgroundColor: Colors.blue.shade600,
+                                        colorText: Colors.white,
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            } else {
+                              // NORMAL ADD
+                              cartController.addToCart(item);
+    
+                              Get.snackbar(
+                                "Added to Cart",
+                                "${item.name} added successfully!",
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.blue.shade600,
+                                colorText: Colors.white,
+                              );
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(30.r),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 10.h),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30.r),
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF1976D2),
+                                  Color(0xFF42A5F5),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              "Add to Cart",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(8.0.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15.sp,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          "৳${item.price}",
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14.sp,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10.w,
-                      vertical: 8.h,
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        cartController.addToCart(item);
-                        Get.snackbar(
-                          "Added to Cart",
-                          "${item.name} added successfully!",
-                          snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: Colors.blue.shade600,
-                          colorText: Colors.white,
-                          margin: EdgeInsets.all(10.r),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(30.r),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 10.h),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30.r),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          "Add to Cart",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            }),
           );
-        }),
-      );
-    },
-  ),
-)
-,
+        },
+      ),
     );
+
   });
 }
 
 
-Widget buildLogoAndAbout(Color themeColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Blue Bite Restaurant",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22.sp,
-            fontWeight: FontWeight.bold,
+class VariantSelectorSheet extends StatelessWidget {
+  final MenuItem item;
+  final Function(MenuVariant) onVariantSelected;
+
+  const VariantSelectorSheet({
+    super.key,
+    required this.item,
+    required this.onVariantSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.all(20.r),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Choose Variant",
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
           ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          "Delicious meals made with love. Experience the best dining in town.",
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 14.sp,
-            height: 1.4,
-          ),
-        ),
-      ],
+          SizedBox(height: 15.h),
+
+          ...item.variants!.map((v) {
+            return ListTile(
+              title: Text("${v.size} - ৳${v.price}"),
+              onTap: () => onVariantSelected(v),
+            );
+          }),
+
+          SizedBox(height: 10.h),
+        ],
+      ),
     );
   }
+}
 
-  Widget buildLinks() {
-    final links = ["Home", "Menu", "About", "Contact"];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Quick Links",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
+
+Widget buildLogoAndAbout(Color themeColor) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        "Blue Bite Restaurant",
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 22.sp,
+          fontWeight: FontWeight.bold,
         ),
-        SizedBox(height: 10.h),
-        ...links.map(
-          (link) => Padding(
-            padding: EdgeInsets.symmetric(vertical: 3.h),
-            child: InkWell(
-              onTap: () {},
-              child: Text(
-                link,
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15.sp,
-                ),
-              ),
+      ),
+      SizedBox(height: 8.h),
+      Text(
+        "Delicious meals made with love. Experience the best dining in town.",
+        style: TextStyle(color: Colors.white70, fontSize: 14.sp, height: 1.4),
+      ),
+    ],
+  );
+}
+
+Widget buildLinks() {
+  final links = ["Home", "Menu", "About", "Contact"];
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        "Quick Links",
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18.sp,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      SizedBox(height: 10.h),
+      ...links.map(
+        (link) => Padding(
+          padding: EdgeInsets.symmetric(vertical: 3.h),
+          child: InkWell(
+            onTap: () {},
+            child: Text(
+              link,
+              style: TextStyle(color: Colors.white70, fontSize: 15.sp),
             ),
           ),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
-  Widget buildSocialIcons(Color themeColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Follow Us",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
+Widget buildSocialIcons(Color themeColor) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        "Follow Us",
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18.sp,
+          fontWeight: FontWeight.bold,
         ),
-        SizedBox(height: 10.h),
-        Row(
-          children: [
-            socialButton(FontAwesomeIcons.facebookF, themeColor),
-            SizedBox(width: 15.w),
-            socialButton(FontAwesomeIcons.instagram, themeColor),
-            SizedBox(width: 15.w),
-            socialButton(FontAwesomeIcons.twitter, themeColor),
-          ],
-        ),
-        SizedBox(height: 30.h),
-        buildCopyright(),
-      ],
-    );
-  }
-
-  Widget socialButton(IconData icon, Color themeColor) {
-    return Container(
-      width: 40.w,
-      height: 40.h,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 5.r,
-            offset: Offset(0, 3.h),
-          ),
+      ),
+      SizedBox(height: 10.h),
+      Row(
+        children: [
+          socialButton(FontAwesomeIcons.facebookF, themeColor),
+          SizedBox(width: 15.w),
+          socialButton(FontAwesomeIcons.instagram, themeColor),
+          SizedBox(width: 15.w),
+          socialButton(FontAwesomeIcons.twitter, themeColor),
         ],
       ),
-      child: Icon(icon, color: themeColor, size: 20.sp),
-    );
-  }
+      SizedBox(height: 30.h),
+      buildCopyright(),
+    ],
+  );
+}
 
-  Widget buildCopyright() {
-    return Text(
-      "© 2025 Blue Bite Restaurant. All Rights Reserved.",
-      style: TextStyle(
-        color: Colors.white70,
-        fontSize: 13.sp,
-      ),
-    );
-  }
+Widget socialButton(IconData icon, Color themeColor) {
+  return Container(
+    width: 40.w,
+    height: 40.h,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      shape: BoxShape.circle,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black26,
+          blurRadius: 5.r,
+          offset: Offset(0, 3.h),
+        ),
+      ],
+    ),
+    child: Icon(icon, color: themeColor, size: 20.sp),
+  );
+}
 
+Widget buildCopyright() {
+  return Text(
+    "© 2025 Blue Bite Restaurant. All Rights Reserved.",
+    style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+  );
+}

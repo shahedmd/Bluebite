@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_unnecessary_containers
+// ignore_for_file: avoid_unnecessary_containers, deprecated_member_use, use_build_context_synchronously
 
 import 'package:bluebite/Web%20Screen/customobject.dart';
 import 'package:flutter/material.dart';
@@ -16,13 +16,6 @@ class CustomNavbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 800;
-
-    if (isMobile) {
-      // Use your existing drawer on mobile
-      return const SizedBox.shrink();
-    }
-
     final themeColor1 = const Color(0xFF0D47A1);
     final themeColor2 = const Color(0xFF1976D2);
 
@@ -43,74 +36,110 @@ class CustomNavbar extends StatelessWidget {
         ],
       ),
       child: centeredContent(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
           children: [
-            InkWell(
-              onTap: () => Get.to(() => WebHomepage()),
-              child: Row(
-                children: [
-                  Container(
-                    width: 45.w,
-                    height: 45.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.restaurant, color: Colors.white),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Text(
-                    "Blue Bite",
-                    style: TextStyle(
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Menu items
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _navItem(
-                  "Home",
-                  Icons.home,
-                  () => Get.to(() => const WebHomepage()),
+                InkWell(
+                  onTap: () => Get.to(() => WebHomepage()),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 45.w,
+                        height: 45.w,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.restaurant, color: Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Text(
+                        "Blue Bite",
+                        style: TextStyle(
+                          fontSize: 22.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                _navItem(
-                  "Cart",
-                  Icons.shop,
-                  () => Get.to(() => const CartPageWeb()),
-                ),
-                _navDialogItem(
-                  context,
-                  "Live Order",
-                  Icons.shopping_cart_outlined,
-                  "Inhouse",
-                ),
-                _navDialogItem(
-                  context,
-                  "Prebooked Order",
-                  Icons.table_bar,
-                  "Prebooking",
-                ),
-                _navItem(
-                  "Offers",
-                  Icons.local_offer_outlined,
-                  () => Get.to(() => const OfferPageWeb()),
-                ),
-                _navItem(
-                  "Reviews",
-                  Icons.reviews,
-                  () => Get.to(() => const CustomerReviewWeb()),
+
+                // Menu items
+                Row(
+                  children: [
+                    _navItem(
+                      "Home",
+                      Icons.home,
+                      () => Get.to(() => const WebHomepage()),
+                    ),
+                    _navItem(
+                      "Cart",
+                      Icons.shop,
+                      () => Get.to(() => const CartPageWeb()),
+                    ),
+                    _navDialogItem(
+                      context,
+                      "Inhouse Order Status",
+                      Icons.shopping_cart_outlined,
+                      "Inhouse",
+                    ),
+                    _navDialogItem(
+                      context,
+                      "Prebooked Order Status",
+                      Icons.table_bar,
+                      "Prebooking",
+                    ),
+                    _navItem(
+                      "Offers",
+                      Icons.local_offer_outlined,
+                      () => Get.to(() => const OfferPageWeb()),
+                    ),
+                    _navItem(
+                      "Reviews",
+                      Icons.reviews,
+                      () => Get.to(() => const CustomerReviewWeb()),
+                    ),
+                  ],
                 ),
               ],
+            ),
+
+            SizedBox(height: 15.h),
+            SizedBox(
+              width: 500.w,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 5.r,
+                      offset: Offset(0, 3.h),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: TextField(
+                    onChanged: (value) {
+                      controller.searchQuery.value = value; // update text
+                      controller.searchProducts(value); // start searching
+                    },
+                    decoration: InputDecoration(
+                      hintText: "Search...",
+                      border: InputBorder.none,
+                      hintStyle: TextStyle(fontSize: 16.sp),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -140,123 +169,190 @@ class CustomNavbar extends StatelessWidget {
       ),
     );
   }
-
   Widget _navDialogItem(
-    BuildContext context,
-    String title,
-    IconData icon,
-    String selectedType,
-  ) {
-    return InkWell(
-      onTap: () async {
-        String? selectedTable;
+  BuildContext context,
+  String title,
+  IconData icon,
+  String selectedType,
+) {
+  return InkWell(
+    onTap: () async {
+      String? selectedTable;
+      DateTime? selectedTimeSlot;
 
-        await showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.r),
-              ),
-              title: Text(
-                "Select Table Number",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1976D2),
-                  fontSize: 18.sp,
-                ),
-              ),
-              content: StatefulBuilder(
-                builder: (context, setState) {
-                  return DropdownButtonFormField<String>(
-                    value: selectedTable,
-                    hint: const Text("Choose table"),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    items: List.generate(
-                      20,
-                      (index) => DropdownMenuItem(
-                        value: (index + 1).toString(),
-                        child: Text("Table ${(index + 1)}"),
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedTable = value;
-                      });
-                    },
-                  );
-                },
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "Cancel",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1976D2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                  onPressed: () {
-                    if (selectedTable != null) {
-                      Navigator.pop(context);
-                      if (selectedType == "Inhouse") {
-                        Get.to(
-                          () => LiveOrderPageWeb(
-                            tableNo: selectedTable!,
-                            selectedtype: "Inhouse",
-                          ),
-                          preventDuplicates: false,
-                        );
-                      } else {
-                        Get.to(
-                          () => PrebookOrderWeb(
-                            tableNo: selectedTable!,
-                            selectedtype: "Prebooking",
-                          ),
-                          preventDuplicates: false,
-                        );
-                      }
-                    }
-                  },
-                  child: const Text(
-                    "OK",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white),
-            SizedBox(width: 6.w),
-            Text(
-              title,
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            title: Text(
+              "Select Table Number${selectedType == 'Prebooking' ? ' & Time Slot' : ''}",
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 17.sp,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1976D2),
+                fontSize: 18.sp,
               ),
             ),
-          ],
-        ),
+            content: StatefulBuilder(
+              builder: (context, setState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: selectedTable,
+                      hint: const Text("Choose table"),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      items: List.generate(
+                        20,
+                        (index) => DropdownMenuItem(
+                          value: (index + 1).toString(),
+                          child: Text("Table ${(index + 1)}"),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedTable = value;
+                        });
+                      },
+                    ),
+                    if (selectedType == "Prebooking") ...[
+                      SizedBox(height: 12.h),
+                      InkWell(
+                        onTap: () async {
+                          DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+
+                          if (picked != null) {
+                            TimeOfDay? time = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.now(),
+                            );
+
+                            if (time != null) {
+                              setState(() {
+                                selectedTimeSlot = DateTime(
+                                  picked.year,
+                                  picked.month,
+                                  picked.day,
+                                  time.hour,
+                                  time.minute,
+                                );
+                              });
+                            }
+                          }
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              vertical: 14.h, horizontal: 12.w),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: Colors.grey),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                selectedTimeSlot != null
+                                    ? "${selectedTimeSlot!.day}/${selectedTimeSlot!.month}/${selectedTimeSlot!.year} "
+                                      "${selectedTimeSlot!.hour.toString().padLeft(2, '0')}:${selectedTimeSlot!.minute.toString().padLeft(2, '0')}"
+                                    : "Select Time Slot",
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              const Icon(Icons.access_time)
+                            ],
+                          ),
+                        ),
+                      ),
+                    ]
+                  ],
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1976D2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+                onPressed: () {
+                  if (selectedTable != null &&
+                      (selectedType != "Prebooking" || selectedTimeSlot != null)) {
+                    Navigator.pop(context);
+                    if (selectedType == "Inhouse") {
+                      Get.to(
+                        () => LiveOrderPageWeb(
+                          tableNo: selectedTable!,
+                          selectedtype: "Inhouse",
+                        ),
+                        preventDuplicates: false,
+                      );
+                    } else {
+                      Get.to(
+                        () => PrebookOrderWeb(
+                          tableNo: selectedTable!,
+                          selectedtype: "Prebooking",
+                          timeslot: selectedTimeSlot!,
+                        ),
+                        preventDuplicates: false,
+                      );
+                    }
+                  } else {
+                    Get.snackbar(
+                      'Select all fields',
+                      'Please choose table and timeslot',
+                      backgroundColor: Colors.red.shade300,
+                      colorText: Colors.white,
+                    );
+                  }
+                },
+                child: const Text(
+                  "OK",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+    child: Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white),
+          SizedBox(width: 6.w),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 17.sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
