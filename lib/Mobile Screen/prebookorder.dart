@@ -4,46 +4,34 @@ import 'package:bluebite/Mobile%20Custom%20Object/customwidget.dart';
 import 'package:bluebite/Mobile%20Screen/freshpage.dart';
 import 'package:bluebite/Mobile%20Screen/mobilecart.dart';
 import 'package:bluebite/Mobile%20Screen/mobilehomepage.dart';
+import 'package:bluebite/firebasequery.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 
 class Prebookorder extends StatelessWidget {
   final String tableNo;
   final String selectedtype;
   final DateTime timeslot; // Selected timeslot
 
-  const Prebookorder({
+   Prebookorder({
     super.key,
     required this.tableNo,
     required this.selectedtype,
     required this.timeslot,
   });
 
-  // Cancel order function
-  Future<void> cancelOrder(String orderId, Map<String, dynamic> data) async {
-    final ordersCollection = FirebaseFirestore.instance.collection('orders');
-    final cancelledCollection = FirebaseFirestore.instance.collection(
-      'cancelledOrders',
-    );
-
-    // Remove from orders
-    await ordersCollection.doc(orderId).delete();
-
-    // Add to cancelledOrders collection
-    await cancelledCollection.add({
-      ...data,
-      'cancelledByUser': true,
-      'cancelledAt': Timestamp.now(),
-      'status': 'cancelled',
-    });
-  }
+ final GetxCtrl getxcontroller = Get.put(GetxCtrl());
 
   @override
   Widget build(BuildContext context) {
     final themeColor = Colors.blue.shade800;
     const prebookingDuration = Duration(hours: 2);
+    final DateFormat dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +39,6 @@ class Prebookorder extends StatelessWidget {
         backgroundColor: themeColor,
         centerTitle: true,
       ),
-
       drawer: customDrawer(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Get.to(() => CartPageMobile()),
@@ -94,10 +81,10 @@ class Prebookorder extends StatelessWidget {
 
                 final allOrders = snapshot.data!.docs;
 
-                // Find the order matching the selected timeslot
                 Map<String, dynamic>? displayData;
                 String displayOrderId = '';
 
+                // Match the timeslot
                 for (var doc in allOrders) {
                   final data = doc.data() as Map<String, dynamic>;
                   final Timestamp? prebookTs = data['prebookSlot'] as Timestamp?;
@@ -187,35 +174,58 @@ class Prebookorder extends StatelessWidget {
                                 color: status == "cancelled" ? Colors.red.shade400 : themeColor.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8.r),
                               ),
-                              child: Text(
-                                'Status: $status',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14.sp,
-                                  color: status == "cancelled" ? Colors.white : themeColor,
-                                ),
+                              child: Row(
+                                children: [
+                                  FaIcon(FontAwesomeIcons.infoCircle, size: 14.sp, color: status == "cancelled" ? Colors.white : themeColor),
+                                  SizedBox(width: 6.w),
+                                  Text(
+                                    'Status: $status',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.sp,
+                                      color: status == "cancelled" ? Colors.white : themeColor,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             SizedBox(height: 8.h),
 
-                            // Time slot
-                            Text(
-                              'Time Slot: '
-                              '${startTime.day}/${startTime.month}/${startTime.year} '
-                              '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')} '
-                              '- ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
-                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.sp, color: Colors.grey.shade800),
+                            // Time Slot
+                            Row(
+                              children: [
+                                FaIcon(FontAwesomeIcons.clock, size: 14.sp, color: Colors.blueAccent),
+                                SizedBox(width: 6.w),
+                                Expanded(
+                                  child: Text(
+                                    'Time Slot: ${dateFormat.format(startTime)} - ${dateFormat.format(endTime)}',
+                                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.sp, color: Colors.grey.shade800),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                             SizedBox(height: 8.h),
 
-                            // Ordered time
-                            Text(
-                              'Ordered At: ${data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : DateTime.now()}',
-                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.sp, color: Colors.grey.shade800),
+                            // Ordered Time
+                            Row(
+                              children: [
+                                FaIcon(FontAwesomeIcons.calendarAlt, size: 14.sp, color: Colors.blueAccent),
+                                SizedBox(width: 6.w),
+                                Expanded(
+                                  child: Text(
+                                    'Ordered At: ${data['timestamp'] != null ? dateFormat.format((data['timestamp'] as Timestamp).toDate()) : 'N/A'}',
+                                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.sp, color: Colors.grey.shade800),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                             SizedBox(height: 10.h),
 
-                            // Items
+                            // Items List
                             ...items.map((item) {
                               final name = item['name']?.toString() ?? 'Unnamed Item';
                               final quantity = (item['quantity'] ?? 1).toInt();
@@ -247,10 +257,11 @@ class Prebookorder extends StatelessWidget {
                                         height: 70.w,
                                         color: Colors.grey.shade200,
                                         child: imgUrl.isNotEmpty
-                                            ? Image.network(
-                                                imgUrl,
+                                            ? CachedNetworkImage(
+                                                imageUrl: imgUrl,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined),
+                                                placeholder: (context, url) => Container(color: Colors.grey.shade300),
+                                                errorWidget: (_, __, ___) => const Icon(Icons.broken_image_outlined),
                                               )
                                             : const Icon(Icons.broken_image_outlined),
                                       ),
@@ -277,17 +288,14 @@ class Prebookorder extends StatelessWidget {
                             }),
 
                             SizedBox(height: 6.h),
-                            Text(
-                              'Total: $total BDT',
-                              style: TextStyle(fontWeight: FontWeight.bold, color: themeColor, fontSize: 15.sp),
-                            ),
+                            Text('Total: $total BDT', style: TextStyle(fontWeight: FontWeight.bold, color: themeColor, fontSize: 15.sp)),
                             SizedBox(height: 8.h),
 
                             // Cancel button
                             if (status == 'pending')
                               SizedBox(
                                 width: double.infinity,
-                                child: ElevatedButton(
+                                child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red.shade600,
                                     padding: EdgeInsets.symmetric(vertical: 12.h),
@@ -307,17 +315,13 @@ class Prebookorder extends StatelessWidget {
                                     );
 
                                     if (confirm) {
-                                      await cancelOrder(orderId, data);
+                                      await getxcontroller.cancelOrder(orderId, data);
                                       Get.off(() => FreshMobile());
-                                      Get.snackbar(
-                                        'Success',
-                                        'Order cancelled successfully!',
-                                        backgroundColor: Colors.green.shade300,
-                                        colorText: Colors.white,
-                                      );
+                                      Get.snackbar('Success', 'Order cancelled successfully!', backgroundColor: Colors.green.shade300, colorText: Colors.white);
                                     }
                                   },
-                                  child: const Text('Cancel Order', style: TextStyle(color: Colors.white)),
+                                  icon: const FaIcon(FontAwesomeIcons.trash, color: Colors.white, size: 16),
+                                  label: const Text('Cancel Order', style: TextStyle(color: Colors.white)),
                                 ),
                               ),
 
@@ -339,13 +343,14 @@ class Prebookorder extends StatelessWidget {
                     SizedBox(
                       width: 250.w,
                       height: 50.h,
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: themeColor,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                         ),
                         onPressed: () => Get.to(() => MobileHomepage()),
-                        child: const Text('Order More Food', style: TextStyle(color: Colors.white)),
+                        icon: FaIcon(FontAwesomeIcons.plusCircle, color: Colors.white, size: 16.sp),
+                        label: const Text('Order More Food', style: TextStyle(color: Colors.white)),
                       ),
                     ),
                     SizedBox(height: 20.h),

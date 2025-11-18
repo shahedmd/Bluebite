@@ -7,6 +7,7 @@ import 'package:bluebite/Mobile%20Screen/prebookorder.dart';
 import 'package:bluebite/Mobile%20Screen/review.dart';
 import 'package:bluebite/cartcontroller.dart';
 import 'package:bluebite/firebasequery.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -16,7 +17,6 @@ import 'package:get/get.dart';
 import '../Mobile Screen/mobilecart.dart';
 import '../menuitems.dart';
 
-
 class DrawerControllerX extends GetxController {
   var selectedTable = RxnString(); // nullable reactive string
   var selectedSlot = Rxn<DateTime>(); // nullable reactive DateTime
@@ -25,8 +25,6 @@ class DrawerControllerX extends GetxController {
 GetxCtrl controller = Get.put(GetxCtrl());
 
 CartController cartController = Get.put(CartController());
-
-
 
 Widget customDrawer(BuildContext context) {
   final drawerCtrl = Get.put(DrawerControllerX());
@@ -57,10 +55,7 @@ Widget customDrawer(BuildContext context) {
         ),
         title: Text(
           "Select Table Number",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryBlue,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryBlue),
         ),
         content: Obx(() {
           return DropdownButtonFormField<String>(
@@ -134,16 +129,12 @@ Widget customDrawer(BuildContext context) {
         ),
         title: Text(
           "Select Table & Timeslot",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: primaryBlue,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryBlue),
         ),
         content: Obx(() {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Table dropdown
               DropdownButtonFormField<String>(
                 value: drawerCtrl.selectedTable.value,
                 hint: const Text("Choose table"),
@@ -183,7 +174,10 @@ Widget customDrawer(BuildContext context) {
                   if (date != null) {
                     final time = await showTimePicker(
                       context: context,
-                      initialTime: TimeOfDay(hour: now.hour, minute: now.minute),
+                      initialTime: TimeOfDay(
+                        hour: now.hour,
+                        minute: now.minute,
+                      ),
                     );
                     if (time != null) {
                       drawerCtrl.selectedSlot.value = DateTime(
@@ -271,7 +265,10 @@ Widget customDrawer(BuildContext context) {
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: const Center(
-                      child: FaIcon(FontAwesomeIcons.utensils, color: Colors.white),
+                      child: FaIcon(
+                        FontAwesomeIcons.utensils,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   SizedBox(width: 12.w),
@@ -337,7 +334,6 @@ Widget customDrawer(BuildContext context) {
   );
 }
 
-
 // Drawer Item Widget
 Widget drawerItem(
   BuildContext context, {
@@ -397,20 +393,38 @@ PreferredSizeWidget customAppBar(BuildContext context) {
               ),
             ],
           ),
-          child: TextField(
-            onChanged: (value) {
-              controller.searchQuery.value = value;
-              controller.searchProducts(value);
-            },
-            textAlignVertical: TextAlignVertical.center,
-            decoration: InputDecoration(
-              contentPadding: EdgeInsets.symmetric(
-                vertical: 14.h,
-                horizontal: 10.w,
+          child: Obx(
+            () => TextField(
+              onChanged: (value) {
+                controller.searchQuery.value = value;
+                controller.searchProducts(value);
+              },
+              textAlignVertical:
+                  TextAlignVertical.center, // keeps text centered vertically
+              decoration: InputDecoration(
+                hintText: "Search...",
+                hintStyle: TextStyle(fontSize: 16.sp),
+                border: InputBorder.none,
+                prefix: Padding(
+                  padding: EdgeInsets.only(left: 10.w, right: 8.w),
+                  child: FaIcon(
+                    FontAwesomeIcons.magnifyingGlass,
+                    size: 18.sp,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                suffixIcon:
+                    controller.isSearching.value
+                        ? Padding(
+                          padding: EdgeInsets.all(12.w),
+                          child: SizedBox(
+                            width: 16.w,
+                            height: 16.w,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                        : null,
               ),
-              hintText: "Search...",
-              border: InputBorder.none,
-              hintStyle: TextStyle(fontSize: 16.sp),
             ),
           ),
         ),
@@ -433,7 +447,7 @@ Widget customSlide(double fraction, double slideheight) {
 
     if (controller.imageurls.isEmpty) {
       return SizedBox(
-        height: 180.h,
+        height: slideheight.h,
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -444,13 +458,28 @@ Widget customSlide(double fraction, double slideheight) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(16.r),
           child: Container(
-            width: 400.w,
-
+            width: double.infinity,
             margin: EdgeInsets.symmetric(horizontal: 8.w),
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 0, 0, 0),
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8.r,
+                  offset: Offset(0, 4.h),
+                ),
+              ],
             ),
-            child: Image.network(controller.imageurls[index], fit: BoxFit.fill),
+            child: CachedNetworkImage(
+              imageUrl: controller.imageurls[index],
+              fit: BoxFit.cover,
+              placeholder:
+                  (context, url) => Center(child: CircularProgressIndicator()),
+              errorWidget:
+                  (context, url, error) =>
+                      Center(child: Icon(Icons.error, color: Colors.red)),
+              fadeInDuration: Duration(milliseconds: 300),
+            ),
           ),
         );
       },
@@ -491,18 +520,20 @@ Widget customDot() {
   );
 }
 
-Widget tabitems() {
+Widget tabItems() {
   return Obx(() {
     return Wrap(
       spacing: 10.w,
       runSpacing: 10.h,
       children: List.generate(controller.tabs.length, (index) {
-        bool isSelected =
+        final categoryName = controller.tabs[index];
+        final bool isSelected =
             controller.searchQuery.value.isEmpty &&
             controller.tabindex.value == index;
-        String categoryName = controller.tabs[index];
+
         return GestureDetector(
           onTap: () {
+            // Clear search when switching tabs
             controller.searchCtrl.clear();
             controller.searchQuery.value = "";
 
@@ -510,18 +541,35 @@ Widget tabitems() {
             controller.fetchMenuItems(categoryName);
             controller.tabindex.value = index;
           },
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.blue : Colors.blue.shade100,
-              borderRadius: BorderRadius.circular(25.r),
-            ),
-            child: Text(
-              controller.tabs[index],
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.blue.shade900,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 250),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color:
+                    isSelected
+                        ? Color(0xFF1976D2) // primary blue
+                        : Color(0xFFBBDEFB), // light blue for unselected
+                borderRadius: BorderRadius.circular(25.r),
+                boxShadow:
+                    isSelected
+                        ? [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 5.r,
+                            offset: Offset(0, 3.h),
+                          ),
+                        ]
+                        : null,
+              ),
+              child: Text(
+                categoryName,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Color(0xFF0D47A1),
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -534,24 +582,29 @@ Widget tabitems() {
 Widget tabScreen() {
   return Obx(() {
     if (controller.isLoading.value) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator());
     }
 
     if (controller.hasError.value) {
       return Center(
         child: Text(
           "Error: ${controller.errorMessage.value}",
-          style: TextStyle(color: Colors.red),
+          style: TextStyle(color: Colors.red, fontSize: 14.sp),
         ),
       );
     }
 
     if (controller.menuItems.isEmpty) {
-      return const Center(child: Text("No items available"));
+      return Center(
+        child: Text(
+          "No items available",
+          style: TextStyle(fontSize: 14.sp, color: Colors.black54),
+        ),
+      );
     }
 
     return Padding(
-      padding: EdgeInsets.all(10.0.r),
+      padding: EdgeInsets.all(10.r),
       child: LayoutBuilder(
         builder: (context, constraints) {
           return Wrap(
@@ -561,7 +614,7 @@ Widget tabScreen() {
             children: List.generate(controller.menuItems.length, (index) {
               final item = controller.menuItems[index];
               final imageUrl = item.imgUrl;
-    
+
               return ConstrainedBox(
                 constraints: BoxConstraints(minWidth: 130.w, maxWidth: 180.w),
                 child: Card(
@@ -575,25 +628,45 @@ Widget tabScreen() {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ClipRRect(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(16.r)),
-                        child: imageUrl.isNotEmpty
-                            ? SizedBox(
-                                height: 150.h,
-                                child: Image.network(imageUrl, fit: BoxFit.cover),
-                              )
-                            : Container(
-                                height: 150.h,
-                                color: Colors.grey[300],
-                                child: Center(
-                                  child: Icon(Icons.broken_image, size: 40.sp),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16.r),
+                        ),
+                        child:
+                            imageUrl.isNotEmpty
+                                ? SizedBox(
+                                  height: 150.h,
+                                  child: CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    fit: BoxFit.cover,
+                                    placeholder:
+                                        (context, url) => Center(
+                                          child: CircularProgressIndicator(
+                                            color: Colors.blue.shade200,
+                                          ),
+                                        ),
+                                    errorWidget:
+                                        (context, url, error) => Center(
+                                          child: Icon(
+                                            Icons.broken_image,
+                                            size: 40.sp,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                  ),
+                                )
+                                : Container(
+                                  height: 150.h,
+                                  color: Colors.grey[300],
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: 40.sp,
+                                    ),
+                                  ),
                                 ),
-                              ),
                       ),
-    
-                      // -------- ITEM NAME & PRICE -------- //
                       Padding(
-                        padding: EdgeInsets.all(8.0.w),
+                        padding: EdgeInsets.all(8.w),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -608,14 +681,12 @@ Widget tabScreen() {
                               overflow: TextOverflow.ellipsis,
                             ),
                             SizedBox(height: 4.h),
-    
-                            // Show minimum price if variants exist
                             Text(
                               item.variants != null && item.variants!.isNotEmpty
                                   ? "From ৳${item.variants!.first.price}"
                                   : "৳${item.price ?? 0}",
                               style: TextStyle(
-                                color: Colors.blue.shade700,
+                                color: Color(0xFF1976D2),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14.sp,
                               ),
@@ -623,16 +694,15 @@ Widget tabScreen() {
                           ],
                         ),
                       ),
-    
-                      // -------- ADD TO CART BUTTON -------- //
                       Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 8.h,
+                        ),
                         child: InkWell(
                           onTap: () {
                             if (item.variants != null &&
                                 item.variants!.isNotEmpty) {
-                              // SHOW VARIANT SELECTOR
                               showModalBottomSheet(
                                 context: context,
                                 shape: RoundedRectangleBorder(
@@ -640,36 +710,32 @@ Widget tabScreen() {
                                     top: Radius.circular(20.r),
                                   ),
                                 ),
-                                builder: (_) {
-                                  return VariantSelectorSheet(
-                                    item: item,
-                                    onVariantSelected: (variant) {
-                                      cartController.addVariantToCart(
-                                        item,
-                                       variant, // NEW
-                                      );
-    
-                                      Get.back();
-                                      Get.snackbar(
-                                        "Added to Cart",
-                                        "${item.name} (${variant.size}) added!",
-                                        snackPosition: SnackPosition.BOTTOM,
-                                        backgroundColor: Colors.blue.shade600,
-                                        colorText: Colors.white,
-                                      );
-                                    },
-                                  );
-                                },
+                                builder:
+                                    (_) => VariantSelectorSheet(
+                                      item: item,
+                                      onVariantSelected: (variant) {
+                                        cartController.addVariantToCart(
+                                          item,
+                                          variant,
+                                        );
+                                        Get.back();
+                                        Get.snackbar(
+                                          "Added to Cart",
+                                          "${item.name} (${variant.size}) added!",
+                                          snackPosition: SnackPosition.BOTTOM,
+                                          backgroundColor: Color(0xFF1976D2),
+                                          colorText: Colors.white,
+                                        );
+                                      },
+                                    ),
                               );
                             } else {
-                              // NORMAL ADD
                               cartController.addToCart(item);
-    
                               Get.snackbar(
                                 "Added to Cart",
                                 "${item.name} added successfully!",
                                 snackPosition: SnackPosition.BOTTOM,
-                                backgroundColor: Colors.blue.shade600,
+                                backgroundColor: Color(0xFF1976D2),
                                 colorText: Colors.white,
                               );
                             }
@@ -680,10 +746,7 @@ Widget tabScreen() {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(30.r),
                               gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF1976D2),
-                                  Color(0xFF42A5F5),
-                                ],
+                                colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -710,10 +773,8 @@ Widget tabScreen() {
         },
       ),
     );
-
   });
 }
-
 
 class VariantSelectorSheet extends StatelessWidget {
   final MenuItem item;
@@ -752,7 +813,6 @@ class VariantSelectorSheet extends StatelessWidget {
     );
   }
 }
-
 
 Widget buildLogoAndAbout(Color themeColor) {
   return Column(

@@ -4,12 +4,14 @@ import 'package:bluebite/Web%20Screen/responsiveappbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 
 import '../bottomnav.dart';
 import '../cartcontroller.dart';
 import '../firebasequery.dart';
 import 'customobject.dart';
-// for CustomNavbar
 
 class CartPageWeb extends StatefulWidget {
   const CartPageWeb({super.key});
@@ -32,6 +34,7 @@ class _CartPageWebState extends State<CartPageWeb> {
   @override
   Widget build(BuildContext context) {
     final themeColor = Colors.blue.shade800;
+    final DateFormat dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -39,6 +42,8 @@ class _CartPageWebState extends State<CartPageWeb> {
           children: [
             CustomNavbar(),
             SizedBox(height: 50.h),
+
+            // Table & Order Type selection
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
               child: centeredContent(
@@ -46,15 +51,12 @@ class _CartPageWebState extends State<CartPageWeb> {
                   children: [
                     DropdownButton<String>(
                       value: selectedTable,
-                      items:
-                          tables
-                              .map(
-                                (t) => DropdownMenuItem(
-                                  value: t,
-                                  child: Text('Table $t'),
-                                ),
-                              )
-                              .toList(),
+                      items: tables
+                          .map((t) => DropdownMenuItem(
+                                value: t,
+                                child: Text('Table $t'),
+                              ))
+                          .toList(),
                       onChanged: (val) {
                         setState(() {
                           selectedTable = val!;
@@ -64,13 +66,10 @@ class _CartPageWebState extends State<CartPageWeb> {
                     SizedBox(width: 20.w),
                     DropdownButton<String>(
                       value: selectedOrderType,
-                      items:
-                          orderTypes
-                              .map(
-                                (t) =>
-                                    DropdownMenuItem(value: t, child: Text(t)),
-                              )
-                              .toList(),
+                      items: orderTypes
+                          .map((t) =>
+                              DropdownMenuItem(value: t, child: Text(t)))
+                          .toList(),
                       onChanged: (val) async {
                         setState(() {
                           selectedOrderType = val!;
@@ -85,29 +84,45 @@ class _CartPageWebState extends State<CartPageWeb> {
                         }
                       },
                     ),
+
+                    // Show selected datetime if prebooking
                     if (selectedOrderType == 'Prebooking' &&
                         selectedDateTime != null)
                       Padding(
                         padding: EdgeInsets.only(left: 20.w),
-                        child: Text(
-                          'Selected: ${selectedDateTime!.toString().substring(0, 16)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14.sp,
-                            color: themeColor,
-                          ),
+                        child: Row(
+                          children: [
+                            FaIcon(
+                              FontAwesomeIcons.clock,
+                              size: 16.sp,
+                              color: themeColor,
+                            ),
+                            SizedBox(width: 6.w),
+                            Text(
+                              dateFormat.format(selectedDateTime!),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                                color: themeColor,
+                              ),
+                            ),
+                            SizedBox(width: 10.w),
+                            TextButton.icon(
+                              onPressed: () async => await _pickDateTime(context),
+                              icon: FaIcon(
+                                FontAwesomeIcons.pen,
+                                size: 14.sp,
+                              ),
+                              label: const Text('Change'),
+                            ),
+                          ],
                         ),
                       ),
-                    SizedBox(width: 50.w),
-                    TextButton.icon(
-                      onPressed: () async => await _pickDateTime(context),
-                      icon: const Icon(Icons.edit, size: 18),
-                      label: const Text('Change'),
-                    ),
                   ],
                 ),
               ),
             ),
+
             SizedBox(height: 24.h),
 
             centeredContent(
@@ -131,18 +146,11 @@ class _CartPageWebState extends State<CartPageWeb> {
                           ),
                           SizedBox(height: 16.h),
                           ...cartController.cartItems.map((item) {
-                            final bool hasVariant =
-                                item.selectedVariant != null;
-
+                            final bool hasVariant = item.selectedVariant != null;
                             final double unitPrice =
-                                hasVariant
-                                    ? item.selectedVariant!.price
-                                    : item.price ?? 0;
-
+                                hasVariant ? item.selectedVariant!.price : (item.price ?? 0);
                             final String variantText =
-                                hasVariant
-                                    ? "(${item.selectedVariant!.size})"
-                                    : "";
+                                hasVariant ? "(${item.selectedVariant!.size})" : "";
 
                             return Card(
                               elevation: 6,
@@ -163,17 +171,20 @@ class _CartPageWebState extends State<CartPageWeb> {
                                         width: 100.w,
                                         height: 100.w,
                                         color: Colors.grey.shade200,
-                                        child:
-                                            item.imgUrl.isNotEmpty
-                                                ? Image.network(
-                                                  item.imgUrl,
-                                                  fit: BoxFit.cover,
-                                                )
-                                                : Icon(
-                                                  Icons.broken_image,
-                                                  size: 40.sp,
-                                                  color: Colors.grey,
-                                                ),
+                                        child: item.imgUrl.isNotEmpty
+                                            ? CachedNetworkImage(
+                                                imageUrl: item.imgUrl,
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    Container(color: Colors.grey.shade300),
+                                                errorWidget: (_, __, ___) =>
+                                                    const Icon(Icons.broken_image),
+                                              )
+                                            : Icon(
+                                                Icons.broken_image,
+                                                size: 40.sp,
+                                                color: Colors.grey,
+                                              ),
                                       ),
                                     ),
 
@@ -182,8 +193,7 @@ class _CartPageWebState extends State<CartPageWeb> {
                                     /// ITEM DETAILS ------------------------------
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           /// Name + Variant
                                           Text(
@@ -205,7 +215,6 @@ class _CartPageWebState extends State<CartPageWeb> {
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
-
                                           SizedBox(height: 4.h),
 
                                           /// Total price of this line item
@@ -225,31 +234,31 @@ class _CartPageWebState extends State<CartPageWeb> {
                                     Row(
                                       children: [
                                         IconButton(
-                                          icon: Icon(
-                                            Icons.remove,
+                                          icon: FaIcon(
+                                            FontAwesomeIcons.minus,
+                                            size: 16.sp,
                                             color: themeColor,
                                           ),
-                                          onPressed:
-                                              () => cartController
-                                                  .decreaseQuantity(item),
+                                          onPressed: () =>
+                                              cartController.decreaseQuantity(item),
                                         ),
                                         IconButton(
-                                          icon: Icon(
-                                            Icons.add,
+                                          icon: FaIcon(
+                                            FontAwesomeIcons.plus,
+                                            size: 16.sp,
                                             color: themeColor,
                                           ),
-                                          onPressed:
-                                              () => cartController
-                                                  .increaseQuantity(item),
+                                          onPressed: () =>
+                                              cartController.increaseQuantity(item),
                                         ),
                                         IconButton(
-                                          icon: Icon(
-                                            Icons.delete,
+                                          icon: FaIcon(
+                                            FontAwesomeIcons.trash,
+                                            size: 16.sp,
                                             color: Colors.red.shade700,
                                           ),
-                                          onPressed:
-                                              () => cartController
-                                                  .removeFromCart(item),
+                                          onPressed: () =>
+                                              cartController.removeFromCart(item),
                                         ),
                                       ],
                                     ),
@@ -304,26 +313,32 @@ class _CartPageWebState extends State<CartPageWeb> {
                               width: double.infinity,
                               height: 50.h,
                               child: ElevatedButton(
-                                onPressed:
-                                    () => controller.confirmOrder(
-                                      selectedTable,
-                                      selectedOrderType,
-                                      context,
-                                      selectedDateTime,
-                                    ),
+                                onPressed: () => controller.confirmOrder(
+                                  selectedTable,
+                                  selectedOrderType,
+                                  context,
+                                  selectedDateTime,
+                                ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: themeColor,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16.r),
                                   ),
                                 ),
-                                child: Text(
-                                  'Confirm Order',
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    FaIcon(
+                                      FontAwesomeIcons.cartShopping,
+                                      color: Colors.white,
+                                      size: 18.sp,
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    const Text(
+                                      'Confirm Order',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -335,6 +350,7 @@ class _CartPageWebState extends State<CartPageWeb> {
                 ),
               ),
             ),
+
             SizedBox(height: 400.h),
             BlueBiteBottomNavbar(),
           ],

@@ -4,50 +4,37 @@ import 'package:bluebite/Mobile%20Custom%20Object/customwidget.dart';
 import 'package:bluebite/Mobile%20Screen/freshpage.dart';
 import 'package:bluebite/Mobile%20Screen/mobilecart.dart';
 import 'package:bluebite/Mobile%20Screen/mobilehomepage.dart';
+import 'package:bluebite/firebasequery.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class LiveOrderPage extends StatelessWidget {
   final String tableNo;
   final String selectedtype;
 
-  const LiveOrderPage({
+   LiveOrderPage({
     super.key,
     required this.tableNo,
     required this.selectedtype,
   });
 
-  // Function to cancel order
-  Future<void> cancelOrder(String orderId, Map<String, dynamic> data) async {
-    final ordersCollection = FirebaseFirestore.instance.collection('orders');
-    final cancelledCollection = FirebaseFirestore.instance.collection(
-      'cancelledOrders',
-    );
-
-    // Remove from orders
-    await ordersCollection.doc(orderId).delete();
-
-    // Add to cancelledOrders collection
-    await cancelledCollection.add({
-      ...data,
-      'cancelledByUser': true,
-      'cancelledAt': Timestamp.now(),
-      'status': 'cancelled',
-    });
-  }
+final GetxCtrl getxcontroller = GetxCtrl();
 
   @override
   Widget build(BuildContext context) {
     final themeColor = Colors.blue.shade800;
+    final DateFormat dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
         title: Text(
           "Inhouse Order - Table $tableNo",
-          
           style: TextStyle(fontSize: 18.sp),
         ),
         backgroundColor: themeColor,
@@ -55,30 +42,28 @@ class LiveOrderPage extends StatelessWidget {
       drawer: customDrawer(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Get.to(() => CartPageMobile()); // Keep your cart page
+          Get.to(() => CartPageMobile());
         },
         backgroundColor: themeColor,
         child: const Icon(Icons.shop, color: Colors.white),
       ),
       body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 12.h),
         child: Column(
           children: [
-            SizedBox(height: 12.h),
-
             Text(
               "Order Details",
               style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
             ),
-
             SizedBox(height: 12.h),
+
             StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance
-                      .collection('orders')
-                      .where('tableNo', isEqualTo: tableNo)
-                      .where('orderType', isEqualTo: selectedtype)
-                      .orderBy('timestamp', descending: true)
-                      .snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('orders')
+                  .where('tableNo', isEqualTo: tableNo)
+                  .where('orderType', isEqualTo: selectedtype)
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(
@@ -96,26 +81,21 @@ class LiveOrderPage extends StatelessWidget {
                 final allOrders = snapshot.data!.docs;
 
                 // Filter out delivered orders
-                final relevantOrders =
-                    allOrders.where((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final status = data['status'] ?? '';
-                      return status != 'delivered';
-                    }).toList();
+                final relevantOrders = allOrders.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final status = data['status'] ?? '';
+                  return status != 'delivered';
+                }).toList();
 
                 if (relevantOrders.isEmpty) {
                   return Center(
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(height: 50.h),
                         Text(
                           'No pending or cancelled orders!',
-                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              fontSize: 16.sp, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 20.h),
                         ElevatedButton(
@@ -147,21 +127,18 @@ class LiveOrderPage extends StatelessWidget {
                 final latestOrder = relevantOrders.first;
                 final data = latestOrder.data() as Map<String, dynamic>;
                 final orderId = latestOrder.id;
-                final items = List<Map<String, dynamic>>.from(
-                  data['items'] ?? [],
-                );
+                final items = List<Map<String, dynamic>>.from(data['items'] ?? []);
                 final status = data['status'] ?? 'pending';
                 final feedback = data['adminFeedback'] ?? '';
                 final Timestamp? ts = data['timestamp'] as Timestamp?;
+                final String formattedDate =
+                    ts != null ? dateFormat.format(ts.toDate()) : "No date";
 
                 double total = items.fold(0.0, (sum, item) {
                   final int q = (item['quantity'] ?? 1).toInt();
-
-                  final double p =
-                      item['selectedVariant'] != null
-                          ? (item['selectedVariant']['price'] ?? 0).toDouble()
-                          : (item['price'] ?? 0).toDouble();
-
+                  final double p = item['selectedVariant'] != null
+                      ? (item['selectedVariant']['price'] ?? 0).toDouble()
+                      : (item['price'] ?? 0).toDouble();
                   return sum + (p * q);
                 });
 
@@ -173,10 +150,7 @@ class LiveOrderPage extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16.r),
                       ),
-                      margin: EdgeInsets.symmetric(
-                        vertical: 12.h,
-                        horizontal: 8.w,
-                      ),
+                      margin: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
                       shadowColor: Colors.blue.shade100,
                       child: Padding(
                         padding: EdgeInsets.all(16.r),
@@ -184,74 +158,66 @@ class LiveOrderPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Status
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12.w,
-                                vertical: 6.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    status == "cancelled"
-                                        ? Colors.red.shade400
-                                        : themeColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: Text(
-                                'Status: $status',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16.sp,
-                                  color:
-                                      status == "cancelled"
-                                          ? Colors.white
-                                          : themeColor,
+                            Row(
+                              children: [
+                                FaIcon(
+                                  FontAwesomeIcons.circleCheck,
+                                  color: status == "cancelled"
+                                      ? Colors.red
+                                      : themeColor,
+                                  size: 16.sp,
                                 ),
-                              ),
+                                SizedBox(width: 6.w),
+                                Text(
+                                  'Status: $status',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16.sp,
+                                      color: status == "cancelled"
+                                          ? Colors.red
+                                          : themeColor),
+                                ),
+                              ],
                             ),
                             SizedBox(height: 10.h),
 
-                            // Cancelled feedback
                             if (status == "cancelled")
-                              Padding(
-                                padding: EdgeInsets.symmetric(vertical: 8.h),
-                                child: Text(
-                                  feedback.isNotEmpty
-                                      ? 'Reason: $feedback'
-                                      : 'No reason provided by admin.',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade700,
+                              Row(
+                                children: [
+                                  FaIcon(FontAwesomeIcons.commentSlash,
+                                      color: Colors.red.shade700, size: 14.sp),
+                                  SizedBox(width: 6.w),
+                                  Expanded(
+                                    child: Text(
+                                      feedback.isNotEmpty
+                                          ? 'Reason: $feedback'
+                                          : 'No reason provided by admin.',
+                                      style: TextStyle(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red.shade700,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
 
-                            // Items
+                            SizedBox(height: 12.h),
+
+                            // Items list
                             ...items.map((item) {
                               final String name = item['name'] ?? 'Item';
-
-                              final int quantity =
-                                  (item['quantity'] ?? 1).toInt();
-
+                              final int quantity = (item['quantity'] ?? 1).toInt();
                               final Map<String, dynamic>? variantMap =
                                   item['selectedVariant'] != null
-                                      ? Map<String, dynamic>.from(
-                                        item['selectedVariant'],
-                                      )
+                                      ? Map<String, dynamic>.from(item['selectedVariant'])
                                       : null;
-
-                              final double unitPrice =
-                                  variantMap != null
-                                      ? (variantMap['price'] ?? 0).toDouble()
-                                      : (item['price'] ?? 0).toDouble();
-
+                              final double unitPrice = variantMap != null
+                                  ? (variantMap['price'] ?? 0).toDouble()
+                                  : (item['price'] ?? 0).toDouble();
                               final String variantText =
-                                  variantMap != null
-                                      ? "(${variantMap['size']})"
-                                      : "";
-
-                              final String imgUrl =
-                                  item['imgUrl']?.toString() ?? '';
+                                  variantMap != null ? "(${variantMap['size']})" : "";
+                              final String imgUrl = item['imgUrl']?.toString() ?? '';
 
                               return Padding(
                                 padding: EdgeInsets.symmetric(vertical: 6.h),
@@ -263,44 +229,30 @@ class LiveOrderPage extends StatelessWidget {
                                         width: 80.w,
                                         height: 80.w,
                                         color: Colors.grey.shade200,
-                                        child:
-                                            imgUrl.isNotEmpty
-                                                ? Image.network(
-                                                  imgUrl,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder:
-                                                      (
-                                                        _,
-                                                        __,
-                                                        ___,
-                                                      ) => const Icon(
-                                                        Icons
-                                                            .broken_image_outlined,
-                                                      ),
-                                                )
-                                                : const Icon(
-                                                  Icons.broken_image_outlined,
-                                                ),
+                                        child: imgUrl.isNotEmpty
+                                            ? CachedNetworkImage(
+                                                imageUrl: imgUrl,
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    Container(color: Colors.grey.shade300),
+                                                errorWidget: (_, __, ___) =>
+                                                    const Icon(Icons.broken_image_outlined),
+                                              )
+                                            : const Icon(Icons.broken_image_outlined),
                                       ),
                                     ),
-
                                     SizedBox(width: 12.w),
-
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             "$name $variantText",
                                             style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16.sp,
-                                            ),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16.sp),
                                           ),
-
                                           SizedBox(height: 6.h),
-
                                           Text(
                                             "$quantity × $unitPrice BDT",
                                             style: TextStyle(
@@ -308,14 +260,12 @@ class LiveOrderPage extends StatelessWidget {
                                               color: Colors.grey.shade700,
                                             ),
                                           ),
-
                                           Text(
                                             "Subtotal: ${unitPrice * quantity} BDT",
                                             style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14.sp,
-                                              color: Colors.black87,
-                                            ),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14.sp,
+                                                color: Colors.black87),
                                           ),
                                         ],
                                       ),
@@ -329,18 +279,19 @@ class LiveOrderPage extends StatelessWidget {
                             Text(
                               'Total: $total BDT',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: themeColor,
-                                fontSize: 16.sp,
-                              ),
+                                  fontWeight: FontWeight.bold,
+                                  color: themeColor,
+                                  fontSize: 16.sp),
                             ),
 
-                            // Cancel button (only pending orders)
+                            SizedBox(height: 10.h),
+
+                            // Cancel button
                             if (status == 'pending')
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red.shade600,
-                                  padding: EdgeInsets.symmetric(vertical: 5.h),
+                                  padding: EdgeInsets.symmetric(vertical: 6.h),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12.r),
                                   ),
@@ -348,35 +299,23 @@ class LiveOrderPage extends StatelessWidget {
                                 onPressed: () async {
                                   bool confirm = await showDialog(
                                     context: context,
-                                    builder:
-                                        (_) => AlertDialog(
-                                          title: const Text('Cancel Order?'),
-                                          content: const Text(
-                                            'Do you want to cancel this order?',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed:
-                                                  () => Navigator.pop(
-                                                    context,
-                                                    false,
-                                                  ),
-                                              child: const Text('No'),
-                                            ),
-                                            TextButton(
-                                              onPressed:
-                                                  () => Navigator.pop(
-                                                    context,
-                                                    true,
-                                                  ),
-                                              child: const Text('Yes'),
-                                            ),
-                                          ],
+                                    builder: (_) => AlertDialog(
+                                      title: const Text('Cancel Order?'),
+                                      content: const Text('Do you want to cancel this order?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, false),
+                                          child: const Text('No'),
                                         ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, true),
+                                          child: const Text('Yes'),
+                                        ),
+                                      ],
+                                    ),
                                   );
-
                                   if (confirm) {
-                                    await cancelOrder(orderId, data);
+                                    await getxcontroller.cancelOrder(orderId, data);
                                     Get.off(() => FreshMobile());
                                     Get.snackbar(
                                       'Success',
@@ -386,37 +325,65 @@ class LiveOrderPage extends StatelessWidget {
                                     );
                                   }
                                 },
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 7.w,
-                                  ),
-                                  child: const Text(
-                                    'Cancel Order',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    FaIcon(
+                                      FontAwesomeIcons.xmark,
+                                      color: Colors.white,
+                                      size: 16.sp,
+                                    ),
+                                    SizedBox(width: 6.w),
+                                    const Text(
+                                      'Cancel Order',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
                                 ),
                               ),
 
+                            // Feedback
                             if (status != "cancelled" && feedback.isNotEmpty)
                               Padding(
                                 padding: EdgeInsets.only(top: 6.h),
-                                child: Text(
-                                  'Feedback: $feedback',
-                                  style: TextStyle(
-                                    fontStyle: FontStyle.italic,
-                                    color: Colors.grey.shade800,
-                                  ),
+                                child: Row(
+                                  children: [
+                                    FaIcon(
+                                      FontAwesomeIcons.commentDots,
+                                      color: Colors.grey.shade800,
+                                      size: 14.sp,
+                                    ),
+                                    SizedBox(width: 6.w),
+                                    Expanded(
+                                      child: Text(
+                                        'Feedback: $feedback',
+                                        style: TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            color: Colors.grey.shade800,
+                                            fontSize: 12.sp),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
 
                             SizedBox(height: 6.h),
-                            Text(
-                              'Order Time: ${ts!.toDate()}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: themeColor,
-                                fontSize: 14.sp,
-                              ),
+                            Row(
+                              children: [
+                                FaIcon(
+                                  FontAwesomeIcons.clock,
+                                  size: 14.sp,
+                                  color: themeColor,
+                                ),
+                                SizedBox(width: 6.w),
+                                Text(
+                                  'Order Time: $formattedDate',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: themeColor,
+                                      fontSize: 14.sp),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -438,9 +405,13 @@ class LiveOrderPage extends StatelessWidget {
                             ),
                           ),
                           onPressed: () => Get.to(() => MobileHomepage()),
-                          child: const Text(
-                            'Order More Food',
-                            style: TextStyle(color: Colors.white),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              FaIcon(FontAwesomeIcons.bowlFood, size: 18.sp, color: Colors.white),
+                              SizedBox(width: 8.w),
+                              const Text('Order More Food', style: TextStyle(color: Colors.white)),
+                            ],
                           ),
                         ),
                       ),

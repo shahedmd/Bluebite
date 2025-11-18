@@ -37,7 +37,7 @@ class _MobileHomepageState extends State<MobileHomepage> {
         
             SizedBox(height: 20.h),
         
-            tabitems(),
+            tabItems(),
             SizedBox(height: 15.h),
         
             tabScreen(),

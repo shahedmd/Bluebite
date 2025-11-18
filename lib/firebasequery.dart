@@ -20,6 +20,51 @@ class GetxCtrl extends GetxController {
     fetchCategories();
   }
 
+  Future<void> cancelOrder(String orderId, Map<String, dynamic> data) async {
+    Get.dialog(
+      const Center(child: CircularProgressIndicator()),
+      barrierDismissible: false,
+    );
+
+    try {
+      final ordersCollection = FirebaseFirestore.instance.collection('orders');
+      final cancelledCollection = FirebaseFirestore.instance.collection(
+        'cancelledOrders',
+      );
+
+      // --- Core Logic ---
+
+      // Delete order
+      await ordersCollection.doc(orderId).delete();
+
+      // Move to cancelledOrders
+      await cancelledCollection.add({
+        ...data,
+        'cancelledByUser': true,
+        'cancelledAt': Timestamp.now(),
+        'status': 'cancelled',
+      });
+
+      Get.snackbar(
+        'Success',
+        'Order ID $orderId has been successfully cancelled.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to cancel order: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.blue.shade800,
+        colorText: Get.theme.colorScheme.onError,
+      );
+    } finally {
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
+    }
+  }
+
   // ---------------------------------------------------------
   // SLIDER IMAGES
   // ---------------------------------------------------------
@@ -67,43 +112,23 @@ class GetxCtrl extends GetxController {
   TextEditingController searchCtrl = TextEditingController();
   RxString searchQuery = "".obs;
 
-  Future<void> fetchCategories() async {
-    try {
-      final doc =
-          await firestore
-              .collection('category')
-              .doc('VPSKqsQRbOLyz1aOloSG')
-              .get();
-
-      if (doc.exists) {
-        List<dynamic> list = doc['categorylist'] ?? [];
-        tabs.value = list.map((e) => e.toString()).toList();
-      }
-      if (tabs.isNotEmpty) {
-        selectedCategory.value = tabs[0];
-        fetchMenuItems(tabs[0]);
-        tabindex.value = 0;
-      }
-    } catch (e) {
-      Text("Error fetching categories: $e");
-    }
-  }
+  // New reactive loading for search
+  RxBool isSearching = false.obs;
 
   Future<void> searchProducts(String keyword) async {
     try {
       keyword = keyword.trim().toLowerCase();
       searchQuery.value = keyword;
-
-      isLoading.value = true;
+      isSearching.value = true;
       hasError.value = false;
 
       // If search is cleared → load category again
       if (keyword.isEmpty) {
-        fetchMenuItems(selectedCategory.value);
+        await fetchMenuItems(selectedCategory.value);
         return;
       }
 
-      // Load all items (for search filtering)
+      // Load all items for search filtering
       final querySnapshot = await firestore.collection('menu').get();
 
       final List<MenuItem> allItems =
@@ -124,7 +149,7 @@ class GetxCtrl extends GetxController {
       hasError.value = true;
       errorMessage.value = e.toString();
     } finally {
-      isLoading.value = false;
+      isSearching.value = false;
     }
   }
 
@@ -155,7 +180,31 @@ class GetxCtrl extends GetxController {
   }
 
   // ---------------------------------------------------------
+  Future<void> fetchCategories() async {
+    try {
+      final doc =
+          await firestore
+              .collection('category')
+              .doc('VPSKqsQRbOLyz1aOloSG')
+              .get();
 
+      if (doc.exists) {
+        List<dynamic> list = doc['categorylist'] ?? [];
+        tabs.value = list.map((e) => e.toString()).toList();
+      }
+      if (tabs.isNotEmpty) {
+        selectedCategory.value = tabs[0];
+        fetchMenuItems(tabs[0]);
+        tabindex.value = 0;
+      }
+    } catch (e) {
+      Text("Error fetching categories: $e");
+    }
+  }
+
+  // ---------------------------------------------------------
+  // ORDER CONFIRMATION
+  // ---------------------------------------------------------
   Future<void> confirmOrder(
     String selectedTable,
     String selectedOrderType,

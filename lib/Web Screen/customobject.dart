@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -15,7 +16,7 @@ CartController cartController = Get.put(CartController());
 Widget centeredContent({required Widget child}) {
   return Center(
     child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 1200), // 👈 limits width
+      constraints: BoxConstraints(maxWidth: 1200.w), // 👈 limits width
       child: child,
     ),
   );
@@ -52,10 +53,26 @@ Widget webCustomSlide() {
               child: Container(
                 width: double.infinity,
                 margin: EdgeInsets.symmetric(horizontal: 10.w),
-                decoration: const BoxDecoration(color: Colors.black12),
-                child: Image.network(
-                  controller.imageurls[index],
-                  fit: BoxFit.fill,
+                decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 8.r,
+                  offset: Offset(0, 4.h),
+                ),
+              ],
+            ),
+                child: CachedNetworkImage(
+                  imageUrl: controller.imageurls[index],
+                  fit: BoxFit.cover,
+                  placeholder:
+                      (context, url) =>
+                          Center(child: CircularProgressIndicator()),
+                  errorWidget:
+                      (context, url, error) =>
+                          Center(child: Icon(Icons.error, color: Colors.red)),
+                  fadeInDuration: Duration(milliseconds: 300),
                 ),
               ),
             );
@@ -64,7 +81,7 @@ Widget webCustomSlide() {
             height: 550.h,
             autoPlay: true,
             enlargeCenterPage: true,
-            viewportFraction: 0.9,
+            viewportFraction: 0.8,
             enableInfiniteScroll: true,
             onPageChanged: (index, reason) {
               controller.currentIndex.value = index;
@@ -217,209 +234,219 @@ Widget tabScreenWeb() {
                     ? 3
                     : 2;
 
-            return  GridView.builder(
-  shrinkWrap: true,
-  physics: const NeverScrollableScrollPhysics(),
-  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-    crossAxisCount: crossAxisCount,
-    crossAxisSpacing: 20,
-    mainAxisSpacing: 20,
-    childAspectRatio: 0.78,
-  ),
-  itemCount: controller.menuItems.length,
-  itemBuilder: (context, index) {
-    final item = controller.menuItems[index];
-    final imageUrl = item.imgUrl;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 0.78,
+              ),
+              itemCount: controller.menuItems.length,
+              itemBuilder: (context, index) {
+                final item = controller.menuItems[index];
+                final imageUrl = item.imgUrl;
 
-    bool hasVariants = item.variants != null && item.variants!.isNotEmpty;
+                bool hasVariants =
+                    item.variants != null && item.variants!.isNotEmpty;
 
-    // Default selected variant
-    MenuVariant? selectedVariant =
-        hasVariants ? item.variants!.first : null;
+                // Default selected variant
+                MenuVariant? selectedVariant =
+                    hasVariants ? item.variants!.first : null;
 
-    return StatefulBuilder(
-      builder: (context, setState) {
-        return MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Card(
-            elevation: 6,
-            shadowColor: Colors.blue.withOpacity(0.3),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                    child: imageUrl.isNotEmpty
-                        ? Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                          )
-                        : Container(
-                            color: Colors.grey[300],
-                            child: const Center(
-                              child: Icon(
-                                Icons.broken_image,
-                                size: 40,
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-
-                // NAME
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17,
-                          color: Colors.black87,
+                return StatefulBuilder(
+                  builder: (context, setState) {
+                    return MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Card(
+                        elevation: 6,
+                        shadowColor: Colors.blue.withOpacity(0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 5),
-
-                      // 🔥 PRICE / VARIANTS UI HERE
-                      if (!hasVariants)
-                        Text(
-                          "৳${item.price}",
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                        )
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text(
-                              "Select Size",
-                              style: TextStyle(
-                                color: Colors.grey[700],
-                                fontSize: 13,
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(16),
+                                ),
+                                child:
+                                    imageUrl.isNotEmpty
+                                        ? Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                        )
+                                        : Container(
+                                          color: Colors.grey[300],
+                                          child: const Center(
+                                            child: Icon(
+                                              Icons.broken_image,
+                                              size: 40,
+                                            ),
+                                          ),
+                                        ),
                               ),
                             ),
-                            const SizedBox(height: 5),
 
-                            // 🔥 VARIANT DROPDOWN
-                            Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: Colors.blue.shade300,
+                            // NAME
+                            Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 17,
+                                      color: Colors.black87,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 5),
+
+                                  // 🔥 PRICE / VARIANTS UI HERE
+                                  if (!hasVariants)
+                                    Text(
+                                      "৳${item.price}",
+                                      style: TextStyle(
+                                        color: Colors.blue.shade700,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
+                                    )
+                                  else
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Select Size",
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+
+                                        // 🔥 VARIANT DROPDOWN
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.blue.shade300,
+                                            ),
+                                          ),
+                                          child: DropdownButton<MenuVariant>(
+                                            value: selectedVariant,
+                                            isExpanded: true,
+                                            underline: const SizedBox(),
+                                            items:
+                                                item.variants!.map((v) {
+                                                  return DropdownMenuItem(
+                                                    value: v,
+                                                    child: Text(
+                                                      "${v.size} - ৳${v.price}",
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                selectedVariant = val!;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            // ADD TO CART BUTTON
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 10,
+                              ),
+                              child: InkWell(
+                                onTap: () {
+                                  if (hasVariants) {
+                                    // Send variant item to cart
+                                    cartController.addVariantToCart(
+                                      item,
+                                      selectedVariant!,
+                                    );
+                                  } else {
+                                    cartController.addToCart(item);
+                                  }
+
+                                  Get.snackbar(
+                                    "Added to Cart",
+                                    "${item.name} added successfully!",
+                                    snackPosition: SnackPosition.BOTTOM,
+                                    backgroundColor: Colors.blue.shade600,
+                                    colorText: Colors.white,
+                                    margin: const EdgeInsets.all(15),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(30),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(30),
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF1976D2),
+                                        Color(0xFF42A5F5),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.blue.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Text(
+                                    "Add to Cart",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              child: DropdownButton<MenuVariant>(
-                                value: selectedVariant,
-                                isExpanded: true,
-                                underline: const SizedBox(),
-                                items: item.variants!.map((v) {
-                                  return DropdownMenuItem(
-                                    value: v,
-                                    child: Text(
-                                      "${v.size} - ৳${v.price}",
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  setState(() {
-                                    selectedVariant = val!;
-                                  });
-                                },
-                              ),
                             ),
                           ],
                         ),
-                    ],
-                  ),
-                ),
-
-                // ADD TO CART BUTTON
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 10,
-                  ),
-                  child: InkWell(
-                    onTap: () {
-                      if (hasVariants) {
-                        // Send variant item to cart
-                        cartController.addVariantToCart(
-                          item,
-                          selectedVariant!,
-                        );
-                      } else {
-                        cartController.addToCart(item);
-                      }
-
-                      Get.snackbar(
-                        "Added to Cart",
-                        "${item.name} added successfully!",
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: Colors.blue.shade600,
-                        colorText: Colors.white,
-                        margin: const EdgeInsets.all(15),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFF1976D2),
-                            Color(0xFF42A5F5),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.blue.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
                       ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        "Add to Cart",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  },
-);
-
+                    );
+                  },
+                );
+              },
+            );
           },
         ),
       ),
