@@ -26,16 +26,12 @@ class LiveOrderPageWeb extends StatelessWidget {
     required this.selectedtype,
   });
 
- 
-
-
   @override
   Widget build(BuildContext context) {
     final themeColor = Colors.blue.shade800;
     final DateFormat dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
     final GetxCtrl getxcontroller = Get.put(GetxCtrl());
-
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
@@ -58,13 +54,12 @@ class LiveOrderPageWeb extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.all(20.r),
                 child: StreamBuilder<QuerySnapshot>(
-                  stream:
-                      FirebaseFirestore.instance
-                          .collection('orders')
-                          .where('tableNo', isEqualTo: tableNo)
-                          .where('orderType', isEqualTo: selectedtype)
-                          .orderBy('timestamp', descending: true)
-                          .snapshots(),
+                  stream: FirebaseFirestore.instance
+                      .collection('orders')
+                      .where('tableNo', isEqualTo: tableNo)
+                      .where('orderType', isEqualTo: selectedtype)
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
@@ -80,14 +75,60 @@ class LiveOrderPageWeb extends StatelessWidget {
 
                     final orders = snapshot.data!.docs;
 
-                    // Filter out delivered
-                    final relevantOrders =
-                        orders.where((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          return (data['status'] ?? '') != 'delivered';
-                        }).toList();
+                    // If there are no orders at all for this table/type
+                    if (orders.isEmpty) {
+                      return Center(
+                        child: Column(
+                          children: [
+                            SizedBox(height: 50.h),
+                            Text(
+                              'No orders yet for this table.',
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 20.h),
+                            ElevatedButton.icon(
+                              onPressed: () => Get.to(() => WebHomepage()),
+                              icon: FaIcon(
+                                FontAwesomeIcons.utensils,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Order Food',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: themeColor,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 24.w,
+                                  vertical: 12.h,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
 
-                    if (relevantOrders.isEmpty) {
+                    // Use only the latest order (most recent) to decide what to show
+                    final latestDoc = orders.first;
+                    final data = latestDoc.data() as Map<String, dynamic>;
+                    final orderId = latestDoc.id;
+                    final items = List<Map<String, dynamic>>.from(
+                      (data['items'] ?? []) as List<dynamic>,
+                    );
+                    final status = (data['status'] ?? 'pending').toString();
+                    final feedback = data['adminFeedback']?.toString() ?? '';
+                    final ts = data['timestamp'] as Timestamp?;
+
+                    // If latest is delivered -> show "no pending or cancelled" (so cancelled disappears)
+                    if (status == 'delivered') {
                       return Center(
                         child: Column(
                           children: [
@@ -127,26 +168,22 @@ class LiveOrderPageWeb extends StatelessWidget {
                       );
                     }
 
-                    final latestOrder = relevantOrders.first;
-                    final data = latestOrder.data() as Map<String, dynamic>;
-                    final orderId = latestOrder.id;
-                    final items = List<Map<String, dynamic>>.from(
-                      data['items'] ?? [],
-                    );
-                    final status = data['status'] ?? 'pending';
-                    final feedback = data['adminFeedback'] ?? '';
-                    final ts = data['timestamp'] as Timestamp?;
-
+                    // If latest is cancelled or pending/processing -> show that latest order card
                     double total = items.fold(0.0, (sum, item) {
-                      final q = (item['quantity'] ?? 1).toInt();
-                      final p =
-                          item['selectedVariant'] != null
-                              ? (item['selectedVariant']['price'] ?? 0)
-                                  .toDouble()
-                              : (item['price'] ?? 0).toDouble();
-                      return sum + (p * q);
+                      final q = (item['quantity'] ?? 1);
+                      final qty = (q is int) ? q : (q is double ? q.toInt() : int.parse(q.toString()));
+                      double p = 0.0;
+                      if (item['selectedVariant'] != null) {
+                        final sv = Map<String, dynamic>.from(item['selectedVariant']);
+                        p = (sv['price'] ?? 0) is num ? (sv['price'] as num).toDouble() : double.parse((sv['price'] ?? 0).toString());
+                      } else {
+                        final priceRaw = item['price'] ?? 0;
+                        p = (priceRaw is num) ? (priceRaw).toDouble() : double.parse(priceRaw.toString());
+                      }
+                      return sum + (p * qty);
                     });
 
+                    // Card UI (same as before) but now only for the latest order
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -172,10 +209,9 @@ class LiveOrderPageWeb extends StatelessWidget {
                                     vertical: 6.h,
                                   ),
                                   decoration: BoxDecoration(
-                                    color:
-                                        status == "cancelled"
-                                            ? Colors.red.shade400
-                                            : themeColor.withOpacity(0.2),
+                                    color: status == "cancelled"
+                                        ? Colors.red.shade400
+                                        : themeColor.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(8.r),
                                   ),
                                   child: Text(
@@ -183,10 +219,9 @@ class LiveOrderPageWeb extends StatelessWidget {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16.sp,
-                                      color:
-                                          status == "cancelled"
-                                              ? Colors.white
-                                              : themeColor,
+                                      color: status == "cancelled"
+                                          ? Colors.white
+                                          : themeColor,
                                     ),
                                   ),
                                 ),
@@ -212,24 +247,16 @@ class LiveOrderPageWeb extends StatelessWidget {
                                 // Items
                                 ...items.map((item) {
                                   final name = item['name'] ?? 'Item';
-                                  final qty = (item['quantity'] ?? 1).toInt();
-                                  final variantMap =
-                                      item['selectedVariant'] != null
-                                          ? Map<String, dynamic>.from(
-                                            item['selectedVariant'],
-                                          )
-                                          : null;
-                                  final price =
-                                      variantMap != null
-                                          ? (variantMap['price'] ?? 0)
-                                              .toDouble()
-                                          : (item['price'] ?? 0).toDouble();
-                                  final variantText =
-                                      variantMap != null
-                                          ? "(${variantMap['size']})"
-                                          : "";
-                                  final imgUrl =
-                                      item['imgUrl']?.toString() ?? '';
+                                  final q = (item['quantity'] ?? 1);
+                                  final qty = (q is int) ? q : (q is double ? q.toInt() : int.parse(q.toString()));
+                                  final variantMap = item['selectedVariant'] != null
+                                      ? Map<String, dynamic>.from(item['selectedVariant'])
+                                      : null;
+                                  final price = variantMap != null
+                                      ? ((variantMap['price'] ?? 0) is num ? (variantMap['price'] as num).toDouble() : double.parse((variantMap['price'] ?? 0).toString()))
+                                      : ((item['price'] ?? 0) is num ? (item['price'] as num).toDouble() : double.parse((item['price'] ?? 0).toString()));
+                                  final variantText = variantMap != null ? "(${variantMap['size'] ?? ''})" : "";
+                                  final imgUrl = item['imgUrl']?.toString() ?? '';
 
                                   return Padding(
                                     padding: EdgeInsets.symmetric(
@@ -238,49 +265,31 @@ class LiveOrderPageWeb extends StatelessWidget {
                                     child: Row(
                                       children: [
                                         ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            12.r,
-                                          ),
+                                          borderRadius: BorderRadius.circular(12.r),
                                           child: Container(
                                             width: 80.w,
                                             height: 80.w,
                                             color: Colors.grey.shade200,
-                                            child:
-                                                imgUrl.isNotEmpty
-                                                    ? CachedNetworkImage(
-                                                      imageUrl: imgUrl,
-                                                      fit: BoxFit.cover,
-                                                      placeholder:
-                                                          (
-                                                            context,
-                                                            url,
-                                                          ) => Container(
-                                                            color:
-                                                                Colors
-                                                                    .grey
-                                                                    .shade300,
-                                                          ),
-                                                      errorWidget:
-                                                          (
-                                                            _,
-                                                            __,
-                                                            ___,
-                                                          ) => const Icon(
-                                                            Icons
-                                                                .broken_image_outlined,
-                                                          ),
-                                                    )
-                                                    : const Icon(
-                                                      Icons
-                                                          .broken_image_outlined,
+                                            child: imgUrl.isNotEmpty
+                                                ? CachedNetworkImage(
+                                                    imageUrl: imgUrl,
+                                                    fit: BoxFit.cover,
+                                                    placeholder: (context, url) => Container(
+                                                      color: Colors.grey.shade300,
                                                     ),
+                                                    errorWidget: (_, __, ___) => const Icon(
+                                                      Icons.broken_image_outlined,
+                                                    ),
+                                                  )
+                                                : const Icon(
+                                                    Icons.broken_image_outlined,
+                                                  ),
                                           ),
                                         ),
                                         SizedBox(width: 16.w),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 "$name $variantText",
@@ -340,41 +349,26 @@ class LiveOrderPageWeb extends StatelessWidget {
                                         horizontal: 10.w,
                                       ),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          12.r,
-                                        ),
+                                        borderRadius: BorderRadius.circular(12.r),
                                       ),
                                     ),
                                     onPressed: () async {
                                       bool confirm = await showDialog(
                                         context: context,
-                                        builder:
-                                            (_) => AlertDialog(
-                                              title: const Text(
-                                                'Cancel Order?',
-                                              ),
-                                              content: const Text(
-                                                'Do you want to cancel this order?',
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed:
-                                                      () => Navigator.pop(
-                                                        context,
-                                                        false,
-                                                      ),
-                                                  child: const Text('No'),
-                                                ),
-                                                TextButton(
-                                                  onPressed:
-                                                      () => Navigator.pop(
-                                                        context,
-                                                        true,
-                                                      ),
-                                                  child: const Text('Yes'),
-                                                ),
-                                              ],
+                                        builder: (_) => AlertDialog(
+                                          title: const Text('Cancel Order?'),
+                                          content: const Text('Do you want to cancel this order?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, false),
+                                              child: const Text('No'),
                                             ),
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, true),
+                                              child: const Text('Yes'),
+                                            ),
+                                          ],
+                                        ),
                                       );
 
                                       if (confirm) {
@@ -383,17 +377,14 @@ class LiveOrderPageWeb extends StatelessWidget {
                                         Get.snackbar(
                                           'Success',
                                           'Order cancelled successfully!',
-                                          backgroundColor:
-                                              Colors.green.shade300,
+                                          backgroundColor: Colors.green.shade300,
                                           colorText: Colors.white,
                                         );
                                       }
                                     },
-                                  
                                   ),
 
-                                if (status != 'cancelled' &&
-                                    feedback.isNotEmpty)
+                                if (status != 'cancelled' && feedback.isNotEmpty)
                                   Padding(
                                     padding: EdgeInsets.only(top: 6.h),
                                     child: Text(

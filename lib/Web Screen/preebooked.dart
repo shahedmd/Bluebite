@@ -21,15 +21,14 @@ class PrebookOrderWeb extends StatelessWidget {
   final String selectedtype;
   final DateTime timeslot;
 
-   PrebookOrderWeb({
+  PrebookOrderWeb({
     super.key,
     required this.tableNo,
     required this.selectedtype,
     required this.timeslot,
   });
 
-     final GetxCtrl getxcontroller = Get.put(GetxCtrl());
-
+  final GetxCtrl getxcontroller = Get.put(GetxCtrl());
 
   @override
   Widget build(BuildContext context) {
@@ -61,8 +60,7 @@ class PrebookOrderWeb extends StatelessWidget {
                       .collection('orders')
                       .where('tableNo', isEqualTo: tableNo)
                       .where('orderType', isEqualTo: selectedtype)
-                      .where('status', whereIn: ['pending', 'processing', 'cancelled'])
-                      .orderBy('prebookSlot', descending: true)
+                      .orderBy('timestamp', descending: true) // newest first
                       .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
@@ -78,25 +76,45 @@ class PrebookOrderWeb extends StatelessWidget {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    final allOrders = snapshot.data!.docs;
+                    final docs = snapshot.data!.docs;
                     Map<String, dynamic>? displayData;
                     String displayOrderId = '';
 
-                    for (var doc in allOrders) {
+                    // Helper: check if timeslots overlap
+                    bool overlaps(DateTime orderPrebook, DateTime slotStart, Duration slotDuration) {
+                      final slotEnd = slotStart.add(slotDuration);
+                      final orderEnd = orderPrebook.add(slotDuration);
+                      return slotStart.isBefore(orderEnd) && slotEnd.isAfter(orderPrebook);
+                    }
+
+                    // 1) Find most recent overlapping order
+                    for (var doc in docs) {
                       final data = doc.data() as Map<String, dynamic>;
                       final Timestamp? prebookTs = data['prebookSlot'] as Timestamp?;
                       if (prebookTs == null) continue;
+                      final orderPrebook = prebookTs.toDate();
 
-                      final orderTime = prebookTs.toDate();
-                      final slotStart = timeslot;
-                      final slotEnd = slotStart.add(prebookingDuration);
-                      final orderEnd = orderTime.add(prebookingDuration);
-
-                      final overlap = slotStart.isBefore(orderEnd) && slotEnd.isAfter(orderTime);
-                      if (overlap) {
-                        displayData = data;
-                        displayOrderId = doc.id;
+                      if (overlaps(orderPrebook, timeslot, prebookingDuration)) {
+                        final status = (data['status'] ?? '').toString().toLowerCase();
+                        if (status == 'delivered') {
+                          displayData = null;
+                          displayOrderId = '';
+                        } else {
+                          displayData = data;
+                          displayOrderId = doc.id;
+                        }
                         break;
+                      }
+                    }
+
+                    // 2) If no overlapping order, check latest order overall
+                    if (displayData == null && docs.isNotEmpty) {
+                      final mostRecent = docs.first;
+                      final mostData = mostRecent.data() as Map<String, dynamic>;
+                      final mostStatus = (mostData['status'] ?? '').toString().toLowerCase();
+                      if (mostStatus == 'cancelled') {
+                        displayData = mostData;
+                        displayOrderId = mostRecent.id;
                       }
                     }
 
@@ -114,16 +132,11 @@ class PrebookOrderWeb extends StatelessWidget {
                             SizedBox(height: 20.h),
                             ElevatedButton.icon(
                               icon: const FaIcon(FontAwesomeIcons.plus, color: Colors.white),
-                              label: const Text(
-                                'Order More Food',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                              label: const Text('Order More Food', style: TextStyle(color: Colors.white)),
                               style: ElevatedButton.styleFrom(
                                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                                 backgroundColor: themeColor,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                               ),
                               onPressed: () => Get.to(() => WebHomepage()),
                             ),
@@ -132,6 +145,7 @@ class PrebookOrderWeb extends StatelessWidget {
                       );
                     }
 
+                    // --- Display order ---
                     final data = displayData;
                     final orderId = displayOrderId;
                     final items = List<Map<String, dynamic>>.from(data['items'] ?? []);
@@ -142,11 +156,14 @@ class PrebookOrderWeb extends StatelessWidget {
                     final DateTime endTime = startTime.add(prebookingDuration);
 
                     final total = items.fold<double>(0.0, (sum, item) {
-                      double price = item['selectedVariant'] != null
-                          ? (item['selectedVariant']['price'] ?? 0).toDouble()
-                          : (item['price'] ?? 0).toDouble();
-                      final quantity = (item['quantity'] ?? 1).toInt();
-                      return sum + (price * quantity);
+                      num priceNum;
+                      if (item['selectedVariant'] != null) {
+                        priceNum = (item['selectedVariant']['price'] ?? 0) as num;
+                      } else {
+                        priceNum = (item['price'] ?? 0) as num;
+                      }
+                      final quantity = (item['quantity'] ?? 1) as int;
+                      return sum + (priceNum.toDouble() * quantity.toDouble());
                     });
 
                     final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
@@ -186,23 +203,31 @@ class PrebookOrderWeb extends StatelessWidget {
                                 SizedBox(height: 10.h),
                                 Text(
                                   'Time Slot: ${dateFormat.format(startTime)} - ${DateFormat('hh:mm a').format(endTime)}',
-                                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp, color: Colors.grey.shade800),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14.sp,
+                                      color: Colors.grey.shade800),
                                 ),
                                 SizedBox(height: 6.h),
                                 Text(
                                   'Ordered At: ${data['timestamp'] != null ? dateFormat.format((data['timestamp'] as Timestamp).toDate()) : dateFormat.format(DateTime.now())}',
-                                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp, color: Colors.grey.shade800),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14.sp,
+                                      color: Colors.grey.shade800),
                                 ),
                                 SizedBox(height: 10.h),
 
                                 // Items
                                 ...items.map((item) {
                                   final name = item['name']?.toString() ?? 'Unnamed Item';
-                                  final quantity = (item['quantity'] ?? 1).toInt();
+                                  final quantity = (item['quantity'] ?? 1) as int;
                                   final selectedVariant = item['selectedVariant'] != null
                                       ? Map<String, dynamic>.from(item['selectedVariant'])
                                       : null;
-                                  final price = selectedVariant != null ? (selectedVariant['price'] ?? 0).toDouble() : (item['price'] ?? 0).toDouble();
+                                  final price = selectedVariant != null
+                                      ? (selectedVariant['price'] ?? 0).toDouble()
+                                      : (item['price'] ?? 0).toDouble();
                                   final variantName = selectedVariant != null ? selectedVariant['size'] ?? '' : '';
                                   final imgUrl = item['imgUrl']?.toString() ?? '';
 
@@ -246,7 +271,8 @@ class PrebookOrderWeb extends StatelessWidget {
                                 }),
 
                                 SizedBox(height: 8.h),
-                                Text('Total: $total BDT', style: TextStyle(fontWeight: FontWeight.bold, color: themeColor, fontSize: 16.sp)),
+                                Text('Total: $total BDT',
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: themeColor, fontSize: 16.sp)),
 
                                 if (status == 'pending')
                                   ElevatedButton.icon(

@@ -17,13 +17,13 @@ class LiveOrderPage extends StatelessWidget {
   final String tableNo;
   final String selectedtype;
 
-   LiveOrderPage({
+  LiveOrderPage({
     super.key,
     required this.tableNo,
     required this.selectedtype,
   });
 
-final GetxCtrl getxcontroller = GetxCtrl();
+  final GetxCtrl getxcontroller = GetxCtrl();
 
   @override
   Widget build(BuildContext context) {
@@ -80,14 +80,38 @@ final GetxCtrl getxcontroller = GetxCtrl();
 
                 final allOrders = snapshot.data!.docs;
 
-                // Filter out delivered orders
-                final relevantOrders = allOrders.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final status = data['status'] ?? '';
-                  return status != 'delivered';
-                }).toList();
+                if (allOrders.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No orders yet!',
+                      style: TextStyle(fontSize: 16.sp),
+                    ),
+                  );
+                }
 
-                if (relevantOrders.isEmpty) {
+                // -------------------------------
+                // STEP 1: Find latest pending/cancelled order
+                // Stop at the first delivered order
+                // -------------------------------
+                Map<String, dynamic>? orderToShow;
+                String? orderId;
+
+                for (var doc in allOrders) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final status = data['status'] ?? 'pending';
+
+                  if (status == 'delivered') {
+                    break; // ignore anything older
+                  }
+
+                  if (status == 'pending' || status == 'cancelled') {
+                    orderToShow = data;
+                    orderId = doc.id;
+                    break;
+                  }
+                }
+
+                if (orderToShow == null) {
                   return Center(
                     child: Column(
                       children: [
@@ -124,13 +148,10 @@ final GetxCtrl getxcontroller = GetxCtrl();
                   );
                 }
 
-                final latestOrder = relevantOrders.first;
-                final data = latestOrder.data() as Map<String, dynamic>;
-                final orderId = latestOrder.id;
-                final items = List<Map<String, dynamic>>.from(data['items'] ?? []);
-                final status = data['status'] ?? 'pending';
-                final feedback = data['adminFeedback'] ?? '';
-                final Timestamp? ts = data['timestamp'] as Timestamp?;
+                final items = List<Map<String, dynamic>>.from(orderToShow['items'] ?? []);
+                final status = orderToShow['status'] ?? 'pending';
+                final feedback = orderToShow['adminFeedback'] ?? '';
+                final Timestamp? ts = orderToShow['timestamp'] as Timestamp?;
                 final String formattedDate =
                     ts != null ? dateFormat.format(ts.toDate()) : "No date";
 
@@ -142,6 +163,9 @@ final GetxCtrl getxcontroller = GetxCtrl();
                   return sum + (p * q);
                 });
 
+                // -------------------------------
+                // UI Rendering
+                // -------------------------------
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -181,6 +205,7 @@ final GetxCtrl getxcontroller = GetxCtrl();
                             ),
                             SizedBox(height: 10.h),
 
+                            // Cancel feedback
                             if (status == "cancelled")
                               Row(
                                 children: [
@@ -201,7 +226,6 @@ final GetxCtrl getxcontroller = GetxCtrl();
                                   ),
                                 ],
                               ),
-
                             SizedBox(height: 12.h),
 
                             // Items list
@@ -315,7 +339,7 @@ final GetxCtrl getxcontroller = GetxCtrl();
                                     ),
                                   );
                                   if (confirm) {
-                                    await getxcontroller.cancelOrder(orderId, data);
+                                    await getxcontroller.cancelOrder(orderId!, orderToShow!);
                                     Get.off(() => FreshMobile());
                                     Get.snackbar(
                                       'Success',
@@ -342,7 +366,7 @@ final GetxCtrl getxcontroller = GetxCtrl();
                                 ),
                               ),
 
-                            // Feedback
+                            // Feedback for non-cancelled
                             if (status != "cancelled" && feedback.isNotEmpty)
                               Padding(
                                 padding: EdgeInsets.only(top: 6.h),

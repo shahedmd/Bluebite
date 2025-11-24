@@ -399,8 +399,7 @@ PreferredSizeWidget customAppBar(BuildContext context) {
                 controller.searchQuery.value = value;
                 controller.searchProducts(value);
               },
-              textAlignVertical:
-                  TextAlignVertical.center, // keeps text centered vertically
+              
               decoration: InputDecoration(
                 hintText: "Search...",
                 hintStyle: TextStyle(fontSize: 16.sp),
@@ -415,13 +414,10 @@ PreferredSizeWidget customAppBar(BuildContext context) {
                 ),
                 suffixIcon:
                     controller.isSearching.value
-                        ? Padding(
-                          padding: EdgeInsets.all(12.w),
-                          child: SizedBox(
-                            width: 16.w,
-                            height: 16.w,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                        ? SizedBox(
+                          width: 16.w,
+                          height: 16.w,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                         : null,
               ),
