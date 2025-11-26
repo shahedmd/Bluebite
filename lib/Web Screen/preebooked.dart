@@ -56,12 +56,16 @@ class PrebookOrderWeb extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.all(20.r),
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('orders')
-                      .where('tableNo', isEqualTo: tableNo)
-                      .where('orderType', isEqualTo: selectedtype)
-                      .orderBy('timestamp', descending: true) // newest first
-                      .snapshots(),
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('orders')
+                          .where('tableNo', isEqualTo: tableNo)
+                          .where('orderType', isEqualTo: selectedtype)
+                          .orderBy(
+                            'timestamp',
+                            descending: true,
+                          ) // newest first
+                          .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
@@ -81,21 +85,32 @@ class PrebookOrderWeb extends StatelessWidget {
                     String displayOrderId = '';
 
                     // Helper: check if timeslots overlap
-                    bool overlaps(DateTime orderPrebook, DateTime slotStart, Duration slotDuration) {
+                    bool overlaps(
+                      DateTime orderPrebook,
+                      DateTime slotStart,
+                      Duration slotDuration,
+                    ) {
                       final slotEnd = slotStart.add(slotDuration);
                       final orderEnd = orderPrebook.add(slotDuration);
-                      return slotStart.isBefore(orderEnd) && slotEnd.isAfter(orderPrebook);
+                      return slotStart.isBefore(orderEnd) &&
+                          slotEnd.isAfter(orderPrebook);
                     }
 
                     // 1) Find most recent overlapping order
                     for (var doc in docs) {
                       final data = doc.data() as Map<String, dynamic>;
-                      final Timestamp? prebookTs = data['prebookSlot'] as Timestamp?;
+                      final Timestamp? prebookTs =
+                          data['prebookSlot'] as Timestamp?;
                       if (prebookTs == null) continue;
                       final orderPrebook = prebookTs.toDate();
 
-                      if (overlaps(orderPrebook, timeslot, prebookingDuration)) {
-                        final status = (data['status'] ?? '').toString().toLowerCase();
+                      if (overlaps(
+                        orderPrebook,
+                        timeslot,
+                        prebookingDuration,
+                      )) {
+                        final status =
+                            (data['status'] ?? '').toString().toLowerCase();
                         if (status == 'delivered') {
                           displayData = null;
                           displayOrderId = '';
@@ -110,8 +125,10 @@ class PrebookOrderWeb extends StatelessWidget {
                     // 2) If no overlapping order, check latest order overall
                     if (displayData == null && docs.isNotEmpty) {
                       final mostRecent = docs.first;
-                      final mostData = mostRecent.data() as Map<String, dynamic>;
-                      final mostStatus = (mostData['status'] ?? '').toString().toLowerCase();
+                      final mostData =
+                          mostRecent.data() as Map<String, dynamic>;
+                      final mostStatus =
+                          (mostData['status'] ?? '').toString().toLowerCase();
                       if (mostStatus == 'cancelled') {
                         displayData = mostData;
                         displayOrderId = mostRecent.id;
@@ -127,16 +144,30 @@ class PrebookOrderWeb extends StatelessWidget {
                             Text(
                               '✅ No orders found for this timeslot!',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             SizedBox(height: 20.h),
                             ElevatedButton.icon(
-                              icon: const FaIcon(FontAwesomeIcons.plus, color: Colors.white),
-                              label: const Text('Order More Food', style: TextStyle(color: Colors.white)),
+                              icon: const FaIcon(
+                                FontAwesomeIcons.plus,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Order More Food',
+                                style: TextStyle(color: Colors.white),
+                              ),
                               style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 24.w,
+                                  vertical: 12.h,
+                                ),
                                 backgroundColor: themeColor,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
                               ),
                               onPressed: () => Get.to(() => WebHomepage()),
                             ),
@@ -148,9 +179,14 @@ class PrebookOrderWeb extends StatelessWidget {
                     // --- Display order ---
                     final data = displayData;
                     final orderId = displayOrderId;
-                    final items = List<Map<String, dynamic>>.from(data['items'] ?? []);
+                    final items = List<Map<String, dynamic>>.from(
+                      data['items'] ?? [],
+                    );
                     final status = data['status'] ?? 'pending';
                     final feedback = data['adminFeedback'] ?? '';
+                    final customername = data['name'] ?? '';
+                    final customerphone = data['phone'] ?? '';
+                    final customeradd = data['address'] ?? '';
                     final Timestamp? ts = data['prebookSlot'] as Timestamp?;
                     final DateTime startTime = ts?.toDate() ?? DateTime.now();
                     final DateTime endTime = startTime.add(prebookingDuration);
@@ -158,7 +194,8 @@ class PrebookOrderWeb extends StatelessWidget {
                     final total = items.fold<double>(0.0, (sum, item) {
                       num priceNum;
                       if (item['selectedVariant'] != null) {
-                        priceNum = (item['selectedVariant']['price'] ?? 0) as num;
+                        priceNum =
+                            (item['selectedVariant']['price'] ?? 0) as num;
                       } else {
                         priceNum = (item['price'] ?? 0) as num;
                       }
@@ -176,7 +213,10 @@ class PrebookOrderWeb extends StatelessWidget {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16.r),
                           ),
-                          margin: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+                          margin: EdgeInsets.symmetric(
+                            vertical: 12.h,
+                            horizontal: 8.w,
+                          ),
                           shadowColor: Colors.blue.shade100,
                           child: Padding(
                             padding: EdgeInsets.all(16.r),
@@ -184,11 +224,15 @@ class PrebookOrderWeb extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 6.h,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: status == "cancelled"
-                                        ? Colors.red.shade400
-                                        : themeColor.withOpacity(0.2),
+                                    color:
+                                        status == "cancelled"
+                                            ? Colors.red.shade400
+                                            : themeColor.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(8.r),
                                   ),
                                   child: Text(
@@ -196,7 +240,10 @@ class PrebookOrderWeb extends StatelessWidget {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16.sp,
-                                      color: status == "cancelled" ? Colors.white : themeColor,
+                                      color:
+                                          status == "cancelled"
+                                              ? Colors.white
+                                              : themeColor,
                                     ),
                                   ),
                                 ),
@@ -204,39 +251,80 @@ class PrebookOrderWeb extends StatelessWidget {
                                 Text(
                                   'Time Slot: ${dateFormat.format(startTime)} - ${DateFormat('hh:mm a').format(endTime)}',
                                   style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14.sp,
-                                      color: Colors.grey.shade800),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14.sp,
+                                    color: Colors.grey.shade800,
+                                  ),
                                 ),
                                 SizedBox(height: 6.h),
                                 Text(
                                   'Ordered At: ${data['timestamp'] != null ? dateFormat.format((data['timestamp'] as Timestamp).toDate()) : dateFormat.format(DateTime.now())}',
                                   style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14.sp,
-                                      color: Colors.grey.shade800),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14.sp,
+                                    color: Colors.grey.shade800,
+                                  ),
                                 ),
                                 SizedBox(height: 10.h),
 
+                                Text(
+                                  customername,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14.sp,
+                                  ),
+                                ),
+                                 Text(
+                                  customerphone,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14.sp,
+                                  ),
+                                ),
+
+                                Text(
+                                  customeradd,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14.sp,
+                                  ),
+                                ),
+
                                 // Items
                                 ...items.map((item) {
-                                  final name = item['name']?.toString() ?? 'Unnamed Item';
-                                  final quantity = (item['quantity'] ?? 1) as int;
-                                  final selectedVariant = item['selectedVariant'] != null
-                                      ? Map<String, dynamic>.from(item['selectedVariant'])
-                                      : null;
-                                  final price = selectedVariant != null
-                                      ? (selectedVariant['price'] ?? 0).toDouble()
-                                      : (item['price'] ?? 0).toDouble();
-                                  final variantName = selectedVariant != null ? selectedVariant['size'] ?? '' : '';
-                                  final imgUrl = item['imgUrl']?.toString() ?? '';
+                                  final name =
+                                      item['name']?.toString() ??
+                                      'Unnamed Item';
+                                  final quantity =
+                                      (item['quantity'] ?? 1) as int;
+                                  final selectedVariant =
+                                      item['selectedVariant'] != null
+                                          ? Map<String, dynamic>.from(
+                                            item['selectedVariant'],
+                                          )
+                                          : null;
+                                  final price =
+                                      selectedVariant != null
+                                          ? (selectedVariant['price'] ?? 0)
+                                              .toDouble()
+                                          : (item['price'] ?? 0).toDouble();
+                                  final variantName =
+                                      selectedVariant != null
+                                          ? selectedVariant['size'] ?? ''
+                                          : '';
+                                  final imgUrl =
+                                      item['imgUrl']?.toString() ?? '';
 
                                   return Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 6.h),
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 6.h,
+                                    ),
                                     child: Row(
                                       children: [
                                         ClipRRect(
-                                          borderRadius: BorderRadius.circular(12.r),
+                                          borderRadius: BorderRadius.circular(
+                                            12.r,
+                                          ),
                                           child: Container(
                                             width: 80.w,
                                             height: 80.w,
@@ -244,23 +332,40 @@ class PrebookOrderWeb extends StatelessWidget {
                                             child: CachedNetworkImage(
                                               imageUrl: imgUrl,
                                               fit: BoxFit.cover,
-                                              placeholder: (_, __) => const Center(child: CircularProgressIndicator()),
-                                              errorWidget: (_, __, ___) => const Icon(Icons.broken_image_outlined),
+                                              placeholder:
+                                                  (_, __) => const Center(
+                                                    child:
+                                                        CircularProgressIndicator(),
+                                                  ),
+                                              errorWidget:
+                                                  (_, __, ___) => const Icon(
+                                                    Icons.broken_image_outlined,
+                                                  ),
                                             ),
                                           ),
                                         ),
                                         SizedBox(width: 16.w),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+                                              Text(
+                                                name,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16.sp,
+                                                ),
+                                              ),
                                               SizedBox(height: 6.h),
                                               Text(
                                                 variantName.isNotEmpty
                                                     ? '$quantity x $variantName: $price BDT'
                                                     : '$quantity x $price BDT',
-                                                style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700),
+                                                style: TextStyle(
+                                                  fontSize: 14.sp,
+                                                  color: Colors.grey.shade700,
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -271,35 +376,82 @@ class PrebookOrderWeb extends StatelessWidget {
                                 }),
 
                                 SizedBox(height: 8.h),
-                                Text('Total: $total BDT',
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: themeColor, fontSize: 16.sp)),
+                                Text(
+                                  'Total: $total BDT',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: themeColor,
+                                    fontSize: 16.sp,
+                                  ),
+                                ),
 
                                 if (status == 'pending')
                                   ElevatedButton.icon(
-                                    icon: const FaIcon(FontAwesomeIcons.trash, color: Colors.white),
-                                    label: const Text('Cancel Order', style: TextStyle(color: Colors.white)),
+                                    icon: const FaIcon(
+                                      FontAwesomeIcons.trash,
+                                      color: Colors.white,
+                                    ),
+                                    label: const Text(
+                                      'Cancel Order',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red.shade600,
-                                      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 10.w),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 10.h,
+                                        horizontal: 10.w,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          12.r,
+                                        ),
+                                      ),
                                     ),
                                     onPressed: () async {
                                       bool confirm = await showDialog(
                                         context: context,
-                                        builder: (_) => AlertDialog(
-                                          title: const Text('Cancel Order?'),
-                                          content: const Text('Do you want to cancel this order?'),
-                                          actions: [
-                                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-                                            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes')),
-                                          ],
-                                        ),
+                                        builder:
+                                            (_) => AlertDialog(
+                                              title: const Text(
+                                                'Cancel Order?',
+                                              ),
+                                              content: const Text(
+                                                'Do you want to cancel this order?',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed:
+                                                      () => Navigator.pop(
+                                                        context,
+                                                        false,
+                                                      ),
+                                                  child: const Text('No'),
+                                                ),
+                                                TextButton(
+                                                  onPressed:
+                                                      () => Navigator.pop(
+                                                        context,
+                                                        true,
+                                                      ),
+                                                  child: const Text('Yes'),
+                                                ),
+                                              ],
+                                            ),
                                       );
 
                                       if (confirm) {
-                                        await getxcontroller.cancelOrder(orderId, data);
+                                        await getxcontroller.cancelOrder(
+                                          orderId,
+                                          data,
+                                        );
                                         Get.off(() => Freshpage());
-                                        Get.snackbar('Success', 'Order cancelled successfully!', backgroundColor: Colors.green.shade300, colorText: Colors.white);
+                                        Get.snackbar(
+                                          'Success',
+                                          'Order cancelled successfully!',
+                                          backgroundColor:
+                                              Colors.green.shade300,
+                                          colorText: Colors.white,
+                                        );
                                       }
                                     },
                                   ),
@@ -307,7 +459,13 @@ class PrebookOrderWeb extends StatelessWidget {
                                 if (feedback.isNotEmpty)
                                   Padding(
                                     padding: EdgeInsets.only(top: 6.h),
-                                    child: Text('Feedback: $feedback', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey.shade800)),
+                                    child: Text(
+                                      'Feedback: $feedback',
+                                      style: TextStyle(
+                                        fontStyle: FontStyle.italic,
+                                        color: Colors.grey.shade800,
+                                      ),
+                                    ),
                                   ),
                               ],
                             ),
@@ -321,12 +479,20 @@ class PrebookOrderWeb extends StatelessWidget {
                             height: 65.h,
                             width: 250.w,
                             child: ElevatedButton.icon(
-                              icon: const FaIcon(FontAwesomeIcons.plus, color: Colors.white),
-                              label: const Text('Order More Food', style: TextStyle(color: Colors.white)),
+                              icon: const FaIcon(
+                                FontAwesomeIcons.plus,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Order More Food',
+                                style: TextStyle(color: Colors.white),
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: themeColor,
                                 padding: EdgeInsets.symmetric(vertical: 16.h),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
                               ),
                               onPressed: () => Get.to(() => WebHomepage()),
                             ),

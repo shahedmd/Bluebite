@@ -13,11 +13,18 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-class LiveOrderPage extends StatelessWidget {
-  final String tableNo;
+class Homedelivermobile extends StatelessWidget {
   final String selectedtype;
+  final String? customerName;
+  final String? customerPhone;
 
-  LiveOrderPage({super.key, required this.tableNo, required this.selectedtype});
+  Homedelivermobile({
+    super.key,
+    required this.selectedtype,
+    required this.customerName,
+      required this.customerPhone
+
+  });
 
   final GetxCtrl getxcontroller = GetxCtrl();
 
@@ -30,7 +37,7 @@ class LiveOrderPage extends StatelessWidget {
       appBar: AppBar(
         centerTitle: true,
         title: Text(
-          "Inhouse Order - Table $tableNo",
+          "Home Delivery Order",
           style: TextStyle(fontSize: 18.sp),
         ),
         backgroundColor: themeColor,
@@ -57,8 +64,9 @@ class LiveOrderPage extends StatelessWidget {
               stream:
                   FirebaseFirestore.instance
                       .collection('orders')
-                      .where('tableNo', isEqualTo: tableNo)
-                      .where('orderType', isEqualTo: selectedtype)
+                      .where('orderType', isEqualTo: selectedtype).
+                      where('name', isEqualTo : customerName).
+                      where('phone', isEqualTo: customerPhone)
                       .orderBy('timestamp', descending: true)
                       .snapshots(),
               builder: (context, snapshot) {
@@ -86,10 +94,7 @@ class LiveOrderPage extends StatelessWidget {
                   );
                 }
 
-                // -------------------------------
-                // STEP 1: Find latest pending/cancelled order
-                // Stop at the first delivered order
-                // -------------------------------
+                
                 Map<String, dynamic>? orderToShow;
                 String? orderId;
 
@@ -154,6 +159,9 @@ class LiveOrderPage extends StatelessWidget {
                 );
                 final status = orderToShow['status'] ?? 'pending';
                 final feedback = orderToShow['adminFeedback'] ?? '';
+                final customername = orderToShow['name'] ?? '';
+                final customerphone = orderToShow['phone'] ?? '';
+                final customeraddress = orderToShow['address'] ?? '';
                 final Timestamp? ts = orderToShow['timestamp'] as Timestamp?;
                 final String formattedDate =
                     ts != null ? dateFormat.format(ts.toDate()) : "No date";
@@ -167,9 +175,7 @@ class LiveOrderPage extends StatelessWidget {
                   return sum + (p * q);
                 });
 
-                // -------------------------------
-                // UI Rendering
-                // -------------------------------
+                
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -211,11 +217,11 @@ class LiveOrderPage extends StatelessWidget {
                                             : themeColor,
                                   ),
                                 ),
+                               
                               ],
                             ),
-                            SizedBox(height: 10.h),
-
-                            // Cancel feedback
+                            
+                            
                             if (status == "cancelled")
                               Row(
                                 children: [
@@ -239,9 +245,36 @@ class LiveOrderPage extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                            SizedBox(height: 12.h),
+                            SizedBox(height: 10.h),
+                                Text(
+                                  'Name: $customername',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14.sp,
+                                    color: themeColor,
+                                  ),
+                                ),
+                                SizedBox(width: 6.w),
+                                Text(
+                                  'Address: $customeraddress',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14.sp,
+                                    color: themeColor,
+                                  ),
+                                ),
+                                                                SizedBox(width: 6.w),
 
-                            // Items list
+                                Text(
+                                  'Phone: $customerphone',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14.sp,
+                                    color: themeColor,
+                                  ),
+                                ),
+
+
                             ...items.map((item) {
                               final String name = item['name'] ?? 'Item';
                               final int quantity =
@@ -350,7 +383,6 @@ class LiveOrderPage extends StatelessWidget {
 
                             SizedBox(height: 10.h),
 
-                            // Cancel button
                             if (status == 'pending')
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
@@ -420,7 +452,6 @@ class LiveOrderPage extends StatelessWidget {
                                 ),
                               ),
 
-                            // Feedback for non-cancelled
                             if (status != "cancelled" && feedback.isNotEmpty)
                               Padding(
                                 padding: EdgeInsets.only(top: 6.h),

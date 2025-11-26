@@ -4,6 +4,7 @@ import 'package:bluebite/Web%20Screen/customobject.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'homedeliverweb.dart';
 import 'liveorder.dart';
 import 'offerpage.dart';
 import 'preebooked.dart';
@@ -81,7 +82,7 @@ class CustomNavbar extends StatelessWidget {
                     _navItem(
                       "Cart",
                       Icons.shop,
-                      () => Get.to(() => const CartPageWeb()),
+                      () => Get.to(() =>  CartPageWeb()),
                     ),
                     _navDialogItem(
                       context,
@@ -94,6 +95,12 @@ class CustomNavbar extends StatelessWidget {
                       "Prebooked Order Status",
                       Icons.table_bar,
                       "Prebooking",
+                    ),
+                    _navDialogItem(
+                      context,
+                      "Home Delivery Status",
+                      Icons.table_bar,
+                      "Home Delivery",
                     ),
                     _navItem(
                       "Offers",
@@ -169,7 +176,8 @@ class CustomNavbar extends StatelessWidget {
       ),
     );
   }
-  Widget _navDialogItem(
+
+Widget _navDialogItem(
   BuildContext context,
   String title,
   IconData icon,
@@ -179,6 +187,8 @@ class CustomNavbar extends StatelessWidget {
     onTap: () async {
       String? selectedTable;
       DateTime? selectedTimeSlot;
+      String customerName = '';
+      String customerPhone = '';
 
       await showDialog(
         context: context,
@@ -188,7 +198,9 @@ class CustomNavbar extends StatelessWidget {
               borderRadius: BorderRadius.circular(16.r),
             ),
             title: Text(
-              "Select Table Number${selectedType == 'Prebooking' ? ' & Time Slot' : ''}",
+              selectedType == 'Home Delivery'
+                  ? "Enter Customer Details"
+                  : "Select Table Number${selectedType == 'Prebooking' ? ' & Time Slot' : ''}",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF1976D2),
@@ -200,81 +212,109 @@ class CustomNavbar extends StatelessWidget {
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    DropdownButtonFormField<String>(
-                      value: selectedTable,
-                      hint: const Text("Choose table"),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    if (selectedType == "Home Delivery") ...[
+                      TextField(
+                        decoration: const InputDecoration(
+                          labelText: "Customer Name",
+                          border: OutlineInputBorder(),
                         ),
+                        onChanged: (value) {
+                          setState(() {
+                            customerName = value;
+                          });
+                        },
                       ),
-                      items: List.generate(
-                        20,
-                        (index) => DropdownMenuItem(
-                          value: (index + 1).toString(),
-                          child: Text("Table ${(index + 1)}"),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedTable = value;
-                        });
-                      },
-                    ),
-                    if (selectedType == "Prebooking") ...[
                       SizedBox(height: 12.h),
-                      InkWell(
-                        onTap: () async {
-                          DateTime? picked = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                          );
-
-                          if (picked != null) {
-                            TimeOfDay? time = await showTimePicker(
+                      TextField(
+                        decoration: const InputDecoration(
+                          labelText: "Customer Phone",
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.phone,
+                        onChanged: (value) {
+                          setState(() {
+                            customerPhone = value;
+                          });
+                        },
+                      ),
+                    ] else ...[
+                      DropdownButtonFormField<String>(
+                        value: selectedTable,
+                        hint: const Text("Choose table"),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        items: List.generate(
+                          20,
+                          (index) => DropdownMenuItem(
+                            value: (index + 1).toString(),
+                            child: Text("Table ${(index + 1)}"),
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedTable = value;
+                          });
+                        },
+                      ),
+                      if (selectedType == "Prebooking") ...[
+                        SizedBox(height: 12.h),
+                        InkWell(
+                          onTap: () async {
+                            DateTime? picked = await showDatePicker(
                               context: context,
-                              initialTime: TimeOfDay.now(),
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate:
+                                  DateTime.now().add(const Duration(days: 365)),
                             );
 
-                            if (time != null) {
-                              setState(() {
-                                selectedTimeSlot = DateTime(
-                                  picked.year,
-                                  picked.month,
-                                  picked.day,
-                                  time.hour,
-                                  time.minute,
-                                );
-                              });
+                            if (picked != null) {
+                              TimeOfDay? time = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                              );
+
+                              if (time != null) {
+                                setState(() {
+                                  selectedTimeSlot = DateTime(
+                                    picked.year,
+                                    picked.month,
+                                    picked.day,
+                                    time.hour,
+                                    time.minute,
+                                  );
+                                });
+                              }
                             }
-                          }
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 14.h, horizontal: 12.w),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: Colors.grey),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                selectedTimeSlot != null
-                                    ? "${selectedTimeSlot!.day}/${selectedTimeSlot!.month}/${selectedTimeSlot!.year} "
-                                      "${selectedTimeSlot!.hour.toString().padLeft(2, '0')}:${selectedTimeSlot!.minute.toString().padLeft(2, '0')}"
-                                    : "Select Time Slot",
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              const Icon(Icons.access_time)
-                            ],
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                                vertical: 14.h, horizontal: 12.w),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(color: Colors.grey),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  selectedTimeSlot != null
+                                      ? "${selectedTimeSlot!.day}/${selectedTimeSlot!.month}/${selectedTimeSlot!.year} "
+                                        "${selectedTimeSlot!.hour.toString().padLeft(2, '0')}:${selectedTimeSlot!.minute.toString().padLeft(2, '0')}"
+                                      : "Select Time Slot",
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                const Icon(Icons.access_time)
+                              ],
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ]
                   ],
                 );
@@ -296,7 +336,26 @@ class CustomNavbar extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  if (selectedTable != null &&
+                  if (selectedType == "Home Delivery") {
+                    if (customerName.isNotEmpty && customerPhone.isNotEmpty) {
+                      Navigator.pop(context);
+                      Get.to(
+                        () => DeliveryOrderWeb(
+                          selectedtype: "Home Delivery",
+                          customerName: customerName,
+                          customerPhone: customerPhone,
+                        ),
+                        preventDuplicates: false,
+                      );
+                    } else {
+                      Get.snackbar(
+                        'Missing Fields',
+                        'Please enter both name and phone',
+                        backgroundColor: Colors.red.shade300,
+                        colorText: Colors.white,
+                      );
+                    }
+                  } else if (selectedTable != null &&
                       (selectedType != "Prebooking" || selectedTimeSlot != null)) {
                     Navigator.pop(context);
                     if (selectedType == "Inhouse") {
@@ -355,4 +414,5 @@ class CustomNavbar extends StatelessWidget {
     ),
   );
 }
+
 }

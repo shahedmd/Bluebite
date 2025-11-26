@@ -25,11 +25,16 @@ class _CartPageWebState extends State<CartPageWeb> {
   final GetxCtrl controller = Get.put(GetxCtrl());
 
   final List<String> tables = List.generate(20, (index) => '${index + 1}');
-  final List<String> orderTypes = ['Inhouse', 'Prebooking'];
+  final List<String> orderTypes = ['Inhouse', 'Prebooking', 'Home Delivery'];
 
   String selectedTable = '1';
   String selectedOrderType = 'Inhouse';
   DateTime? selectedDateTime; // for prebooking
+
+  // Home/Prebooking order info
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -51,12 +56,15 @@ class _CartPageWebState extends State<CartPageWeb> {
                   children: [
                     DropdownButton<String>(
                       value: selectedTable,
-                      items: tables
-                          .map((t) => DropdownMenuItem(
-                                value: t,
-                                child: Text('Table $t'),
-                              ))
-                          .toList(),
+                      items:
+                          tables
+                              .map(
+                                (t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text('Table $t'),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (val) {
                         setState(() {
                           selectedTable = val!;
@@ -66,10 +74,13 @@ class _CartPageWebState extends State<CartPageWeb> {
                     SizedBox(width: 20.w),
                     DropdownButton<String>(
                       value: selectedOrderType,
-                      items: orderTypes
-                          .map((t) =>
-                              DropdownMenuItem(value: t, child: Text(t)))
-                          .toList(),
+                      items:
+                          orderTypes
+                              .map(
+                                (t) =>
+                                    DropdownMenuItem(value: t, child: Text(t)),
+                              )
+                              .toList(),
                       onChanged: (val) async {
                         setState(() {
                           selectedOrderType = val!;
@@ -108,11 +119,9 @@ class _CartPageWebState extends State<CartPageWeb> {
                             ),
                             SizedBox(width: 10.w),
                             TextButton.icon(
-                              onPressed: () async => await _pickDateTime(context),
-                              icon: FaIcon(
-                                FontAwesomeIcons.pen,
-                                size: 14.sp,
-                              ),
+                              onPressed:
+                                  () async => await _pickDateTime(context),
+                              icon: FaIcon(FontAwesomeIcons.pen, size: 14.sp),
                               label: const Text('Change'),
                             ),
                           ],
@@ -146,11 +155,16 @@ class _CartPageWebState extends State<CartPageWeb> {
                           ),
                           SizedBox(height: 16.h),
                           ...cartController.cartItems.map((item) {
-                            final bool hasVariant = item.selectedVariant != null;
+                            final bool hasVariant =
+                                item.selectedVariant != null;
                             final double unitPrice =
-                                hasVariant ? item.selectedVariant!.price : (item.price ?? 0);
+                                hasVariant
+                                    ? item.selectedVariant!.price
+                                    : (item.price ?? 0);
                             final String variantText =
-                                hasVariant ? "(${item.selectedVariant!.size})" : "";
+                                hasVariant
+                                    ? "(${item.selectedVariant!.size})"
+                                    : "";
 
                             return Card(
                               elevation: 6,
@@ -171,20 +185,30 @@ class _CartPageWebState extends State<CartPageWeb> {
                                         width: 100.w,
                                         height: 100.w,
                                         color: Colors.grey.shade200,
-                                        child: item.imgUrl.isNotEmpty
-                                            ? CachedNetworkImage(
-                                                imageUrl: item.imgUrl,
-                                                fit: BoxFit.cover,
-                                                placeholder: (context, url) =>
-                                                    Container(color: Colors.grey.shade300),
-                                                errorWidget: (_, __, ___) =>
-                                                    const Icon(Icons.broken_image),
-                                              )
-                                            : Icon(
-                                                Icons.broken_image,
-                                                size: 40.sp,
-                                                color: Colors.grey,
-                                              ),
+                                        child:
+                                            item.imgUrl.isNotEmpty
+                                                ? CachedNetworkImage(
+                                                  imageUrl: item.imgUrl,
+                                                  fit: BoxFit.cover,
+                                                  placeholder:
+                                                      (context, url) =>
+                                                          Container(
+                                                            color:
+                                                                Colors
+                                                                    .grey
+                                                                    .shade300,
+                                                          ),
+                                                  errorWidget:
+                                                      (_, __, ___) =>
+                                                          const Icon(
+                                                            Icons.broken_image,
+                                                          ),
+                                                )
+                                                : Icon(
+                                                  Icons.broken_image,
+                                                  size: 40.sp,
+                                                  color: Colors.grey,
+                                                ),
                                       ),
                                     ),
 
@@ -193,7 +217,8 @@ class _CartPageWebState extends State<CartPageWeb> {
                                     /// ITEM DETAILS ------------------------------
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           /// Name + Variant
                                           Text(
@@ -239,8 +264,9 @@ class _CartPageWebState extends State<CartPageWeb> {
                                             size: 16.sp,
                                             color: themeColor,
                                           ),
-                                          onPressed: () =>
-                                              cartController.decreaseQuantity(item),
+                                          onPressed:
+                                              () => cartController
+                                                  .decreaseQuantity(item),
                                         ),
                                         IconButton(
                                           icon: FaIcon(
@@ -248,8 +274,9 @@ class _CartPageWebState extends State<CartPageWeb> {
                                             size: 16.sp,
                                             color: themeColor,
                                           ),
-                                          onPressed: () =>
-                                              cartController.increaseQuantity(item),
+                                          onPressed:
+                                              () => cartController
+                                                  .increaseQuantity(item),
                                         ),
                                         IconButton(
                                           icon: FaIcon(
@@ -257,8 +284,9 @@ class _CartPageWebState extends State<CartPageWeb> {
                                             size: 16.sp,
                                             color: Colors.red.shade700,
                                           ),
-                                          onPressed: () =>
-                                              cartController.removeFromCart(item),
+                                          onPressed:
+                                              () => cartController
+                                                  .removeFromCart(item),
                                         ),
                                       ],
                                     ),
@@ -313,12 +341,27 @@ class _CartPageWebState extends State<CartPageWeb> {
                               width: double.infinity,
                               height: 50.h,
                               child: ElevatedButton(
-                                onPressed: () => controller.confirmOrder(
-                                  selectedTable,
-                                  selectedOrderType,
-                                  context,
-                                  selectedDateTime,
-                                ),
+                                onPressed: () async {
+                                  // If order type is Prebooking or Home Delivery, show dialog
+                                  Map<String, String>? orderInfo;
+                                  if (selectedOrderType != 'Inhouse') {
+                                    orderInfo = await _showOrderInfoDialog(
+                                      context,
+                                    );
+                                    if (orderInfo == null) return; // Cancelled
+                                  }
+
+                                  // Confirm order
+                                  controller.confirmOrder(
+                                    selectedTable,
+                                    selectedOrderType,
+                                    context,
+                                    selectedDateTime,
+                                    deliveryName: orderInfo?['name'],
+                                    deliveryPhone: orderInfo?['phone'],
+                                    deliveryAddress: orderInfo?['address'],
+                                  );
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: themeColor,
                                   shape: RoundedRectangleBorder(
@@ -399,5 +442,67 @@ class _CartPageWebState extends State<CartPageWeb> {
         pickedTime.minute,
       );
     });
+  }
+
+  // Dialog for Prebooking / Home Delivery order info
+  Future<Map<String, String>?> _showOrderInfoDialog(
+    BuildContext context,
+  ) async {
+    nameController.clear();
+    phoneController.clear();
+    addressController.clear();
+
+    return showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Order Information'),
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                  ),
+                  TextField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  TextField(
+                    controller: addressController,
+                    decoration: const InputDecoration(labelText: 'Address'),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (nameController.text.isEmpty ||
+                      phoneController.text.isEmpty ||
+                      addressController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please fill all fields')),
+                    );
+                    return;
+                  }
+                  Navigator.of(context).pop({
+                    'name': nameController.text,
+                    'phone': phoneController.text,
+                    'address': addressController.text,
+                  });
+                },
+                child: const Text('Submit'),
+              ),
+            ],
+          ),
+    );
   }
 }

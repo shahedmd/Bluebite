@@ -1,11 +1,13 @@
 // ignore_for_file: use_build_context_synchronously, avoid_types_as_parameter_names
 
+import 'package:bluebite/Mobile%20Screen/homedelivermobile.dart';
 import 'package:bluebite/Mobile%20Screen/prebookorder.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'Mobile Screen/liveorder.dart';
+import 'Web Screen/homedeliverweb.dart';
 import 'Web Screen/liveorder.dart';
 import 'Web Screen/preebooked.dart';
 import 'cartcontroller.dart';
@@ -209,8 +211,11 @@ class GetxCtrl extends GetxController {
     String selectedTable,
     String selectedOrderType,
     BuildContext context,
-    DateTime? selectedDateTime,
-  ) async {
+    DateTime? selectedDateTime, {
+    String? deliveryName,
+    String? deliveryPhone,
+    String? deliveryAddress,
+  }) async {
     final firestore = FirebaseFirestore.instance;
 
     // Check if cart is empty
@@ -359,6 +364,9 @@ class GetxCtrl extends GetxController {
                 ? Timestamp.fromDate(selectedDateTime!)
                 : null,
         'adminFeedback': '',
+        'name': deliveryName,
+        'phone': deliveryPhone,
+        'address': deliveryAddress,
       };
 
       await firestore.collection('orders').add(orderData);
@@ -390,6 +398,17 @@ class GetxCtrl extends GetxController {
                     selectedtype: 'Prebooking',
                     timeslot: selectedDateTime!,
                   );
+            }
+            if (selectedOrderType == 'Home Delivery') {
+              return isMobile? Homedelivermobile(
+                customerName: deliveryName,
+                customerPhone: deliveryPhone,
+                selectedtype: "Home Delivery",
+              ) : DeliveryOrderWeb(
+                customerName: deliveryName,
+                customerPhone: deliveryPhone,
+                selectedtype: "Home Delivery",
+              );
             } else {
               return isMobile
                   ? LiveOrderPage(

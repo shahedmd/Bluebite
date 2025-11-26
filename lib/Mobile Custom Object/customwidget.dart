@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
+import 'package:bluebite/Mobile%20Screen/homedelivermobile.dart';
 import 'package:bluebite/Mobile%20Screen/liveorder.dart';
 import 'package:bluebite/Mobile%20Screen/mobilehomepage.dart';
 import 'package:bluebite/Mobile%20Screen/mobileoffer.dart';
@@ -117,6 +118,91 @@ Widget customDrawer(BuildContext context) {
       ),
     );
   }
+
+  Future<void> showCustomerInfoDialog() async {
+  final TextEditingController nameCtrl = TextEditingController();
+  final TextEditingController phoneNumber = TextEditingController();
+
+  await Get.dialog(
+    AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      title: Text(
+        "Customer Information",
+        style: TextStyle(fontWeight: FontWeight.bold, color: primaryBlue),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: nameCtrl,
+            decoration: InputDecoration(
+              labelText: "Customer Name",
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          TextField(
+            controller: phoneNumber,
+            maxLines: 2,
+            decoration: InputDecoration(
+              labelText: "Customer Phone",
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Get.back(),
+          child:
+              const Text("Cancel", style: TextStyle(color: Colors.grey)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryBlue,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+          ),
+          onPressed: () {
+            if (nameCtrl.text.isNotEmpty && phoneNumber.text.isNotEmpty) {
+              Get.back();
+
+              // Navigate or process data
+              Get.to(
+                () => Homedelivermobile(
+                  customerName: nameCtrl.text.trim(),
+                  customerPhone: phoneNumber.text.trim(),
+                  selectedtype: "Home Delivery",
+                ),
+                preventDuplicates: false,
+              );
+            } else {
+              Get.snackbar(
+                'Missing Info',
+                'Please enter all details',
+                backgroundColor: Colors.red.shade300,
+                colorText: Colors.white,
+              );
+            }
+          },
+          child: const Text("OK", style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Future<void> showPrebookDialog() async {
     drawerCtrl.selectedTable.value = null;
@@ -304,6 +390,11 @@ Widget customDrawer(BuildContext context) {
                 icon: FontAwesomeIcons.calendarCheck,
                 title: "Prebooked Order Status",
                 onTap: showPrebookDialog,
+              ),
+              drawerItem(
+                icon: FontAwesomeIcons.truck,
+                title: "Home Deliver Order Status",
+                onTap: showCustomerInfoDialog,
               ),
               drawerItem(
                 icon: FontAwesomeIcons.tag,

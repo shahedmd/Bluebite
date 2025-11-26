@@ -16,7 +16,7 @@ CartController cartController = Get.put(CartController());
 Widget centeredContent({required Widget child}) {
   return Center(
     child: ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: 1200.w), // 👈 limits width
+      constraints: BoxConstraints(maxWidth: 1310.w), // 👈 limits width
       child: child,
     ),
   );

@@ -34,7 +34,11 @@ class Prebookorder extends StatelessWidget {
     final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
     // Helper to check timeslot overlap
-    bool overlaps(DateTime orderPrebook, DateTime slotStart, Duration slotDuration) {
+    bool overlaps(
+      DateTime orderPrebook,
+      DateTime slotStart,
+      Duration slotDuration,
+    ) {
       final slotEnd = slotStart.add(slotDuration);
       final orderEnd = orderPrebook.add(slotDuration);
       return slotStart.isBefore(orderEnd) && slotEnd.isAfter(orderPrebook);
@@ -65,15 +69,21 @@ class Prebookorder extends StatelessWidget {
             ),
             SizedBox(height: 15.h),
             StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('orders')
-                  .where('tableNo', isEqualTo: tableNo)
-                  .where('orderType', isEqualTo: selectedtype)
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('orders')
+                      .where('tableNo', isEqualTo: tableNo)
+                      .where('orderType', isEqualTo: selectedtype)
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: Colors.red, fontSize: 16.sp)));
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: TextStyle(color: Colors.red, fontSize: 16.sp),
+                    ),
+                  );
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -86,12 +96,14 @@ class Prebookorder extends StatelessWidget {
                 // 1️⃣ Find most recent overlapping order
                 for (var doc in docs) {
                   final data = doc.data() as Map<String, dynamic>;
-                  final Timestamp? prebookTs = data['prebookSlot'] as Timestamp?;
+                  final Timestamp? prebookTs =
+                      data['prebookSlot'] as Timestamp?;
                   if (prebookTs == null) continue;
                   final orderPrebook = prebookTs.toDate();
 
                   if (overlaps(orderPrebook, timeslot, prebookingDuration)) {
-                    final status = (data['status'] ?? '').toString().toLowerCase();
+                    final status =
+                        (data['status'] ?? '').toString().toLowerCase();
                     if (status == 'delivered') {
                       displayData = null;
                       displayOrderId = '';
@@ -107,7 +119,8 @@ class Prebookorder extends StatelessWidget {
                 if (displayData == null && docs.isNotEmpty) {
                   final mostRecent = docs.first;
                   final mostData = mostRecent.data() as Map<String, dynamic>;
-                  final mostStatus = (mostData['status'] ?? '').toString().toLowerCase();
+                  final mostStatus =
+                      (mostData['status'] ?? '').toString().toLowerCase();
                   if (mostStatus == 'cancelled') {
                     displayData = mostData;
                     displayOrderId = mostRecent.id;
@@ -123,17 +136,28 @@ class Prebookorder extends StatelessWidget {
                         Text(
                           '✅ No orders found for this timeslot!',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         SizedBox(height: 20.h),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: themeColor,
-                            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 24.w,
+                              vertical: 12.h,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
                           ),
                           onPressed: () => Get.to(() => MobileHomepage()),
-                          child: const Text('Order More Food', style: TextStyle(color: Colors.white)),
+                          child: const Text(
+                            'Order More Food',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ],
                     ),
@@ -143,9 +167,14 @@ class Prebookorder extends StatelessWidget {
                 // --- Display selected order ---
                 final data = displayData;
                 final orderId = displayOrderId;
-                final items = List<Map<String, dynamic>>.from(data['items'] ?? []);
+                final items = List<Map<String, dynamic>>.from(
+                  data['items'] ?? [],
+                );
                 final status = data['status'] ?? 'pending';
                 final feedback = data['adminFeedback'] ?? '';
+                final customername = data['name'];
+                final customeradd = data['address'];
+
                 final Timestamp? ts = data['prebookSlot'] as Timestamp?;
                 final DateTime startTime = ts?.toDate() ?? DateTime.now();
                 final DateTime endTime = startTime.add(prebookingDuration);
@@ -153,8 +182,11 @@ class Prebookorder extends StatelessWidget {
                 double total = items.fold(0.0, (sum, item) {
                   double price = 0;
                   Map<String, dynamic>? selectedVariant;
-                  if (item['selectedVariant'] != null && item['selectedVariant'] is Map) {
-                    selectedVariant = Map<String, dynamic>.from(item['selectedVariant']);
+                  if (item['selectedVariant'] != null &&
+                      item['selectedVariant'] is Map) {
+                    selectedVariant = Map<String, dynamic>.from(
+                      item['selectedVariant'],
+                    );
                     price = (selectedVariant['price'] ?? 0).toDouble();
                   } else {
                     price = (item['price'] ?? 0).toDouble();
@@ -168,8 +200,13 @@ class Prebookorder extends StatelessWidget {
                   children: [
                     Card(
                       elevation: 4,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                      margin: EdgeInsets.symmetric(vertical: 10.h, horizontal: 5.w),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      margin: EdgeInsets.symmetric(
+                        vertical: 10.h,
+                        horizontal: 5.w,
+                      ),
                       child: Padding(
                         padding: EdgeInsets.all(12.r),
                         child: Column(
@@ -177,21 +214,37 @@ class Prebookorder extends StatelessWidget {
                           children: [
                             // Status
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10.w,
+                                vertical: 6.h,
+                              ),
                               decoration: BoxDecoration(
-                                color: status == "cancelled" ? Colors.red.shade400 : themeColor.withOpacity(0.2),
+                                color:
+                                    status == "cancelled"
+                                        ? Colors.red.shade400
+                                        : themeColor.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(8.r),
                               ),
                               child: Row(
                                 children: [
-                                  FaIcon(FontAwesomeIcons.infoCircle, size: 14.sp, color: status == "cancelled" ? Colors.white : themeColor),
+                                  FaIcon(
+                                    FontAwesomeIcons.infoCircle,
+                                    size: 14.sp,
+                                    color:
+                                        status == "cancelled"
+                                            ? Colors.white
+                                            : themeColor,
+                                  ),
                                   SizedBox(width: 6.w),
                                   Text(
                                     'Status: $status',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14.sp,
-                                      color: status == "cancelled" ? Colors.white : themeColor,
+                                      color:
+                                          status == "cancelled"
+                                              ? Colors.white
+                                              : themeColor,
                                     ),
                                   ),
                                 ],
@@ -200,27 +253,61 @@ class Prebookorder extends StatelessWidget {
                             SizedBox(height: 8.h),
 
                             // Time Slot
-                            Text('Time Slot: ${dateFormat.format(startTime)} - ${DateFormat('hh:mm a').format(endTime)}',
-                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp, color: Colors.grey.shade800)),
+                            Text(
+                              'Time Slot: ${dateFormat.format(startTime)} - ${DateFormat('hh:mm a').format(endTime)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
                             SizedBox(height: 6.h),
 
                             // Ordered At
-                            Text('Ordered At: ${data['timestamp'] != null ? dateFormat.format((data['timestamp'] as Timestamp).toDate()) : dateFormat.format(DateTime.now())}',
-                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp, color: Colors.grey.shade800)),
-                            SizedBox(height: 10.h),
-
+                            Text(
+                              'Ordered At: ${data['timestamp'] != null ? dateFormat.format((data['timestamp'] as Timestamp).toDate()) : dateFormat.format(DateTime.now())}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                            SizedBox(height: 6.h),
+                            Text(
+                              customername,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12.sp,
+                              ),
+                            ),
+                            Text(
+                              customeradd,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12.sp,
+                              ),
+                            ),
                             // Items
                             ...items.map((item) {
-                              final name = item['name']?.toString() ?? 'Unnamed Item';
+                              final name =
+                                  item['name']?.toString() ?? 'Unnamed Item';
                               final quantity = (item['quantity'] ?? 1).toInt();
                               Map<String, dynamic>? selectedVariant;
-                              if (item['selectedVariant'] != null && item['selectedVariant'] is Map) {
-                                selectedVariant = Map<String, dynamic>.from(item['selectedVariant']);
+                              if (item['selectedVariant'] != null &&
+                                  item['selectedVariant'] is Map) {
+                                selectedVariant = Map<String, dynamic>.from(
+                                  item['selectedVariant'],
+                                );
                               }
-                              final priceToShow = selectedVariant != null
-                                  ? (selectedVariant['price'] ?? 0).toDouble()
-                                  : (item['price'] ?? 0).toDouble();
-                              final variantName = selectedVariant != null ? selectedVariant['size'] ?? '' : '';
+                              final priceToShow =
+                                  selectedVariant != null
+                                      ? (selectedVariant['price'] ?? 0)
+                                          .toDouble()
+                                      : (item['price'] ?? 0).toDouble();
+                              final variantName =
+                                  selectedVariant != null
+                                      ? selectedVariant['size'] ?? ''
+                                      : '';
                               final imgUrl = item['imgUrl']?.toString() ?? '';
 
                               return Padding(
@@ -233,28 +320,56 @@ class Prebookorder extends StatelessWidget {
                                         width: 70.w,
                                         height: 70.w,
                                         color: Colors.grey.shade200,
-                                        child: imgUrl.isNotEmpty
-                                            ? CachedNetworkImage(
-                                                imageUrl: imgUrl,
-                                                fit: BoxFit.cover,
-                                                placeholder: (context, url) => Container(color: Colors.grey.shade300),
-                                                errorWidget: (_, __, ___) => const Icon(Icons.broken_image_outlined),
-                                              )
-                                            : const Icon(Icons.broken_image_outlined),
+                                        child:
+                                            imgUrl.isNotEmpty
+                                                ? CachedNetworkImage(
+                                                  imageUrl: imgUrl,
+                                                  fit: BoxFit.cover,
+                                                  placeholder:
+                                                      (context, url) =>
+                                                          Container(
+                                                            color:
+                                                                Colors
+                                                                    .grey
+                                                                    .shade300,
+                                                          ),
+                                                  errorWidget:
+                                                      (
+                                                        _,
+                                                        __,
+                                                        ___,
+                                                      ) => const Icon(
+                                                        Icons
+                                                            .broken_image_outlined,
+                                                      ),
+                                                )
+                                                : const Icon(
+                                                  Icons.broken_image_outlined,
+                                                ),
                                       ),
                                     ),
                                     SizedBox(width: 12.w),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                                          Text(
+                                            name,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15.sp,
+                                            ),
+                                          ),
                                           SizedBox(height: 4.h),
                                           Text(
                                             variantName.isNotEmpty
                                                 ? '$quantity x $variantName: $priceToShow BDT'
                                                 : '$quantity x $priceToShow BDT',
-                                            style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade700),
+                                            style: TextStyle(
+                                              fontSize: 12.sp,
+                                              color: Colors.grey.shade700,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -265,7 +380,14 @@ class Prebookorder extends StatelessWidget {
                             }),
 
                             SizedBox(height: 6.h),
-                            Text('Total: $total BDT', style: TextStyle(fontWeight: FontWeight.bold, color: themeColor, fontSize: 15.sp)),
+                            Text(
+                              'Total: $total BDT',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: themeColor,
+                                fontSize: 15.sp,
+                              ),
+                            ),
 
                             if (status == 'pending')
                               SizedBox(
@@ -273,37 +395,80 @@ class Prebookorder extends StatelessWidget {
                                 child: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red.shade600,
-                                    padding: EdgeInsets.symmetric(vertical: 12.h),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 12.h,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10.r),
+                                    ),
                                   ),
                                   onPressed: () async {
                                     bool confirm = await showDialog(
                                       context: context,
-                                      builder: (_) => AlertDialog(
-                                        title: const Text('Cancel Order?'),
-                                        content: const Text('Do you want to cancel this order?'),
-                                        actions: [
-                                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-                                          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes')),
-                                        ],
-                                      ),
+                                      builder:
+                                          (_) => AlertDialog(
+                                            title: const Text('Cancel Order?'),
+                                            content: const Text(
+                                              'Do you want to cancel this order?',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed:
+                                                    () => Navigator.pop(
+                                                      context,
+                                                      false,
+                                                    ),
+                                                child: const Text('No'),
+                                              ),
+                                              TextButton(
+                                                onPressed:
+                                                    () => Navigator.pop(
+                                                      context,
+                                                      true,
+                                                    ),
+                                                child: const Text('Yes'),
+                                              ),
+                                            ],
+                                          ),
                                     );
 
                                     if (confirm) {
-                                      await getxcontroller.cancelOrder(orderId, data);
+                                      await getxcontroller.cancelOrder(
+                                        orderId,
+                                        data,
+                                      );
                                       Get.off(() => FreshMobile());
-                                      Get.snackbar('Success', 'Order cancelled successfully!', backgroundColor: Colors.green.shade300, colorText: Colors.white);
+                                      Get.snackbar(
+                                        'Success',
+                                        'Order cancelled successfully!',
+                                        backgroundColor: Colors.green.shade300,
+                                        colorText: Colors.white,
+                                      );
                                     }
                                   },
-                                  icon: const FaIcon(FontAwesomeIcons.trash, color: Colors.white, size: 16),
-                                  label: const Text('Cancel Order', style: TextStyle(color: Colors.white)),
+                                  icon: const FaIcon(
+                                    FontAwesomeIcons.trash,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  label: const Text(
+                                    'Cancel Order',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
                                 ),
                               ),
 
                             if (feedback.isNotEmpty)
                               Padding(
                                 padding: EdgeInsets.only(top: 6.h),
-                                child: Text('Feedback: $feedback', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12.sp, color: Colors.grey.shade800)),
+                                child: Text(
+                                  'Feedback: $feedback',
+                                  style: TextStyle(
+                                    fontStyle: FontStyle.italic,
+                                    fontSize: 12.sp,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -316,11 +481,20 @@ class Prebookorder extends StatelessWidget {
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: themeColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
                         ),
                         onPressed: () => Get.to(() => MobileHomepage()),
-                        icon: FaIcon(FontAwesomeIcons.plusCircle, color: Colors.white, size: 16.sp),
-                        label: const Text('Order More Food', style: TextStyle(color: Colors.white)),
+                        icon: FaIcon(
+                          FontAwesomeIcons.plusCircle,
+                          color: Colors.white,
+                          size: 16.sp,
+                        ),
+                        label: const Text(
+                          'Order More Food',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                     SizedBox(height: 20.h),

@@ -35,7 +35,7 @@ class LiveOrderPageWeb extends StatelessWidget {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Get.to(() => const CartPageWeb()),
+        onPressed: () => Get.to(() =>  CartPageWeb()),
         backgroundColor: Colors.blue.shade900,
         child: const Icon(Icons.shop, color: Colors.white),
       ),

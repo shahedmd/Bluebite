@@ -16,7 +16,7 @@ class CartPageMobile extends StatelessWidget {
   final GetxCtrl controller = Get.put(GetxCtrl());
 
   final List<String> tables = List.generate(20, (index) => '${index + 1}');
-  final List<String> orderTypes = ['Inhouse', 'Prebooking'];
+  final List<String> orderTypes = ['Inhouse', 'Prebooking', "Home Delivery"];
 
   final RxString selectedTable = '1'.obs;
   final RxString selectedOrderType = 'Inhouse'.obs;
@@ -29,29 +29,70 @@ class CartPageMobile extends StatelessWidget {
     return Scaffold(
       drawer: customDrawer(context),
       floatingActionButton: SizedBox(
-            width: 200.w,
-            height: 56.h,
-            child: FloatingActionButton.extended(
-              onPressed: () => controller.confirmOrder(
+        width: 200.w,
+        height: 56.h,
+        child: FloatingActionButton.extended(
+          onPressed: () async {
+            // Handle different order types
+            if (selectedOrderType.value == 'Inhouse') {
+              // No dialogs, just confirm directly
+              await controller.confirmOrder(
                 selectedTable.value,
                 selectedOrderType.value,
                 context,
                 selectedDateTime.value,
-              ),
-              backgroundColor: themeColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              label: Text(
-                'Confirm Order',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            
+              );
+              return;
+            }
+
+            // For Home Delivery and Prebooking: gather delivery details first
+            final delivery = await _showDeliveryDialog(context);
+            if (delivery == null) {
+              // user cancelled
+              return;
+            }
+
+            // If Prebooking: after delivery details, let user select a time slot
+            DateTime? finalDateTime = selectedDateTime.value;
+            if (selectedOrderType.value == 'Prebooking') {
+              // If user hasn't picked a prebooking date earlier, ask them to pick it now
+              if (selectedDateTime.value == null) {
+                await _pickDateTime(context);
+                if (selectedDateTime.value == null) {
+                  // user cancelled date picker
+                  return;
+                }
+              }
+
+           
+            }
+
+            // Finally confirm order passing customer info
+            await controller.confirmOrder(
+              selectedTable.value,
+              selectedOrderType.value,
+              context,
+              finalDateTime,
+             deliveryName:   delivery['name']!,
+             deliveryAddress:  delivery['address']!,
+            deliveryPhone:   delivery['phone']!,
+            );
+          },
+          backgroundColor: themeColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          label: Text(
+            'Confirm Order',
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
           ),
+        ),
+      ),
       appBar: AppBar(
         centerTitle: true,
         title: Text(
@@ -74,7 +115,6 @@ class CartPageMobile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // -------- TABLE & ORDER TYPE SELECTOR --------
             Obx(() => Row(
                   children: [
                     // Table Dropdown
@@ -157,7 +197,6 @@ class CartPageMobile extends StatelessWidget {
 
             SizedBox(height: 10.h),
 
-            // -------- CART ITEMS LIST --------
             Expanded(
               child: Obx(() {
                 if (cartController.cartItems.isEmpty) {
@@ -259,7 +298,7 @@ class CartPageMobile extends StatelessWidget {
     );
   }
 
-  // -------- HELPER: PICK DATE & TIME --------
+  // -------- HELPER: PICK DATE & TIME (existing) --------
   Future<void> _pickDateTime(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -294,5 +333,86 @@ class CartPageMobile extends StatelessWidget {
       pickedTime.hour,
       pickedTime.minute,
     );
+  }
+
+  // -------- HELPER: SHOW DELIVERY DIALOG --------
+  // Returns a map with keys: 'name', 'phone', 'address' or null if cancelled
+  Future<Map<String, String>?> _showDeliveryDialog(BuildContext context) async {
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    String? error;
+
+    final result = await showDialog<Map<String, String>?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Delivery Details'),
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                  ),
+                  SizedBox(height: 8.h),
+                  TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                  ),
+                  SizedBox(height: 8.h),
+                  TextField(
+                    controller: addressCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(labelText: 'Address'),
+                  ),
+                  if (error != null) ...[
+                    SizedBox(height: 8.h),
+                    Text(
+                      error!,
+                      style: TextStyle(color: Colors.red.shade700),
+                    ),
+                  ]
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(null);
+                },
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final name = nameCtrl.text.trim();
+                  final phone = phoneCtrl.text.trim();
+                  final address = addressCtrl.text.trim();
+
+                  if (name.isEmpty || phone.isEmpty || address.isEmpty) {
+                    setState(() {
+                      error = 'Please fill all fields';
+                    });
+                    return;
+                  }
+
+                  Navigator.of(context).pop({
+                    'name': name,
+                    'phone': phone,
+                    'address': address,
+                  });
+                },
+                child: const Text('Submit'),
+              ),
+            ],
+          );
+        });
+      },
+    );
+
+    return result;
   }
 }
