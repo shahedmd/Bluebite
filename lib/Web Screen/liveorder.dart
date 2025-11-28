@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use, avoid_types_as_parameter_names
 
-import 'package:bluebite/Web%20Screen/fresh.dart';
+import 'package:bluebite/Web%20Screen/responsiveappbar.dart';
 import 'package:bluebite/Web%20Screen/webcart.dart';
 import 'package:bluebite/Web%20Screen/webhomepage.dart';
 import 'package:bluebite/bottomnav.dart';
@@ -14,7 +14,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 
 import 'customobject.dart';
-import 'responsiveappbar.dart';
 
 class LiveOrderPageWeb extends StatelessWidget {
   final String tableNo;
@@ -30,12 +29,11 @@ class LiveOrderPageWeb extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeColor = Colors.blue.shade800;
     final DateFormat dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
-
     final GetxCtrl getxcontroller = Get.put(GetxCtrl());
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Get.to(() =>  CartPageWeb()),
+        onPressed: () => Get.to(() => CartPageWeb()),
         backgroundColor: Colors.blue.shade900,
         child: const Icon(Icons.shop, color: Colors.white),
       ),
@@ -107,7 +105,7 @@ class LiveOrderPageWeb extends StatelessWidget {
                                   vertical: 12.h,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(12.r),
                                 ),
                               ),
                             ),
@@ -116,19 +114,33 @@ class LiveOrderPageWeb extends StatelessWidget {
                       );
                     }
 
-                    // Use only the latest order (most recent) to decide what to show
-                    final latestDoc = orders.first;
-                    final data = latestDoc.data() as Map<String, dynamic>;
-                    final orderId = latestDoc.id;
-                    final items = List<Map<String, dynamic>>.from(
-                      (data['items'] ?? []) as List<dynamic>,
-                    );
-                    final status = (data['status'] ?? 'pending').toString();
-                    final feedback = data['adminFeedback']?.toString() ?? '';
-                    final ts = data['timestamp'] as Timestamp?;
+                    // -------------------------------
+                    // Apply MOBILE logic:
+                    // Loop through docs (newest -> oldest),
+                    // stop when encountering a 'delivered' order (do not show delivered or older).
+                    // Show the first pending/processing/cancelled order encountered (latest active).
+                    // -------------------------------
+                    Map<String, dynamic>? orderToShow;
+                    String? orderId;
 
-                    // If latest is delivered -> show "no pending or cancelled" (so cancelled disappears)
-                    if (status == 'delivered') {
+                    for (var doc in orders) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final status = (data['status'] ?? 'pending').toString();
+
+                      if (status == 'delivered') {
+                        // STOP: as soon as we find a delivered, we should not show older orders
+                        break;
+                      }
+
+                      if (status == 'pending' || status == 'processing' || status == 'cancelled') {
+                        orderToShow = data;
+                        orderId = doc.id;
+                        break;
+                      }
+                    }
+
+                    if (orderToShow == null) {
+                      // No pending/processing/cancelled before a delivered order
                       return Center(
                         child: Column(
                           children: [
@@ -159,7 +171,7 @@ class LiveOrderPageWeb extends StatelessWidget {
                                   vertical: 12.h,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(12.r),
                                 ),
                               ),
                             ),
@@ -168,22 +180,32 @@ class LiveOrderPageWeb extends StatelessWidget {
                       );
                     }
 
-                    // If latest is cancelled or pending/processing -> show that latest order card
+                    // Build UI for the selected order (same as mobile card)
+                    final items = List<Map<String, dynamic>>.from(orderToShow['items'] ?? []);
+                    final status = (orderToShow['status'] ?? 'pending').toString();
+                    final feedback = orderToShow['adminFeedback']?.toString() ?? '';
+                    final Timestamp? ts = orderToShow['timestamp'] as Timestamp?;
+                    final String formattedDate = ts != null ? dateFormat.format(ts.toDate()) : "No date";
+
                     double total = items.fold(0.0, (sum, item) {
                       final q = (item['quantity'] ?? 1);
                       final qty = (q is int) ? q : (q is double ? q.toInt() : int.parse(q.toString()));
                       double p = 0.0;
                       if (item['selectedVariant'] != null) {
                         final sv = Map<String, dynamic>.from(item['selectedVariant']);
-                        p = (sv['price'] ?? 0) is num ? (sv['price'] as num).toDouble() : double.parse((sv['price'] ?? 0).toString());
+                        final priceRaw = sv['price'] ?? 0;
+                        p = (priceRaw is num) ? (priceRaw).toDouble() : double.parse(priceRaw.toString());
                       } else {
                         final priceRaw = item['price'] ?? 0;
-                        p = (priceRaw is num) ? (priceRaw).toDouble() : double.parse(priceRaw.toString());
+                        // ignore: unnecessary_cast
+                        p = (priceRaw is num) ? (priceRaw as num).toDouble() : double.parse(priceRaw.toString());
                       }
                       return sum + (p * qty);
                     });
 
-                    // Card UI (same as before) but now only for the latest order
+                    // Table number (if present)
+                    final String tableNumber = (orderToShow['tableNo'] ?? '').toString();
+
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -202,16 +224,11 @@ class LiveOrderPageWeb extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Status
+                                // Status badge
                                 Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 12.w,
-                                    vertical: 6.h,
-                                  ),
+                                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                                   decoration: BoxDecoration(
-                                    color: status == "cancelled"
-                                        ? Colors.red.shade400
-                                        : themeColor.withOpacity(0.2),
+                                    color: status == "cancelled" ? Colors.red.shade400 : themeColor.withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(8.r),
                                   ),
                                   child: Text(
@@ -219,23 +236,18 @@ class LiveOrderPageWeb extends StatelessWidget {
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16.sp,
-                                      color: status == "cancelled"
-                                          ? Colors.white
-                                          : themeColor,
+                                      color: status == "cancelled" ? Colors.white : themeColor,
                                     ),
                                   ),
                                 ),
                                 SizedBox(height: 10.h),
 
+                                // Cancel reason
                                 if (status == "cancelled")
                                   Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      vertical: 8.h,
-                                    ),
+                                    padding: EdgeInsets.symmetric(vertical: 8.h),
                                     child: Text(
-                                      feedback.isNotEmpty
-                                          ? 'Reason: $feedback'
-                                          : 'No reason provided by admin.',
+                                      feedback.isNotEmpty ? 'Reason: $feedback' : 'No reason provided by admin.',
                                       style: TextStyle(
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.bold,
@@ -244,14 +256,35 @@ class LiveOrderPageWeb extends StatelessWidget {
                                     ),
                                   ),
 
-                                // Items
+                                // Order meta: table (if any) + order time
+                                SizedBox(height: 6.h),
+                                if (tableNumber.isNotEmpty)
+                                  Text(
+                                    'Table: $tableNumber',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp, color: themeColor),
+                                  ),
+                                SizedBox(height: 6.h),
+                                Row(
+                                  children: [
+                                    FaIcon(FontAwesomeIcons.clock, size: 14.sp, color: themeColor),
+                                    SizedBox(width: 6.w),
+                                    Text('Order Time: $formattedDate', style: TextStyle(color: themeColor, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                SizedBox(height: 12.h),
+
+                                // Items list
+                                Text(
+                                  'Items',
+                                  style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 10.h),
+
                                 ...items.map((item) {
                                   final name = item['name'] ?? 'Item';
                                   final q = (item['quantity'] ?? 1);
                                   final qty = (q is int) ? q : (q is double ? q.toInt() : int.parse(q.toString()));
-                                  final variantMap = item['selectedVariant'] != null
-                                      ? Map<String, dynamic>.from(item['selectedVariant'])
-                                      : null;
+                                  final variantMap = item['selectedVariant'] != null ? Map<String, dynamic>.from(item['selectedVariant']) : null;
                                   final price = variantMap != null
                                       ? ((variantMap['price'] ?? 0) is num ? (variantMap['price'] as num).toDouble() : double.parse((variantMap['price'] ?? 0).toString()))
                                       : ((item['price'] ?? 0) is num ? (item['price'] as num).toDouble() : double.parse((item['price'] ?? 0).toString()));
@@ -259,9 +292,7 @@ class LiveOrderPageWeb extends StatelessWidget {
                                   final imgUrl = item['imgUrl']?.toString() ?? '';
 
                                   return Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      vertical: 6.h,
-                                    ),
+                                    padding: EdgeInsets.symmetric(vertical: 6.h),
                                     child: Row(
                                       children: [
                                         ClipRRect(
@@ -274,46 +305,21 @@ class LiveOrderPageWeb extends StatelessWidget {
                                                 ? CachedNetworkImage(
                                                     imageUrl: imgUrl,
                                                     fit: BoxFit.cover,
-                                                    placeholder: (context, url) => Container(
-                                                      color: Colors.grey.shade300,
-                                                    ),
-                                                    errorWidget: (_, __, ___) => const Icon(
-                                                      Icons.broken_image_outlined,
-                                                    ),
+                                                    placeholder: (context, url) => Container(color: Colors.grey.shade300),
+                                                    errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
                                                   )
-                                                : const Icon(
-                                                    Icons.broken_image_outlined,
-                                                  ),
+                                                : const Icon(Icons.broken_image),
                                           ),
                                         ),
-                                        SizedBox(width: 16.w),
+                                        SizedBox(width: 12.w),
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                "$name $variantText",
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16.sp,
-                                                ),
-                                              ),
-                                              SizedBox(height: 6.h),
-                                              Text(
-                                                "$qty × $price BDT",
-                                                style: TextStyle(
-                                                  fontSize: 14.sp,
-                                                  color: Colors.grey.shade700,
-                                                ),
-                                              ),
-                                              Text(
-                                                "Subtotal: ${qty * price} BDT",
-                                                style: TextStyle(
-                                                  fontSize: 14.sp,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
+                                              Text('$name $variantText', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+                                              SizedBox(height: 4.h),
+                                              Text('$qty × $price BDT', style: TextStyle(color: Colors.grey.shade700)),
+                                              Text('Subtotal: ${price * qty} BDT', style: TextStyle(fontWeight: FontWeight.bold)),
                                             ],
                                           ),
                                         ),
@@ -322,89 +328,57 @@ class LiveOrderPageWeb extends StatelessWidget {
                                   );
                                 }),
 
-                                SizedBox(height: 8.h),
-                                Text(
-                                  'Total: $total BDT',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16.sp,
-                                    color: themeColor,
-                                  ),
-                                ),
+                                Divider(),
+                                Text('Total: $total BDT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp, color: themeColor)),
+                                SizedBox(height: 12.h),
 
-                                if (status == 'pending')
-                                  ElevatedButton.icon(
-                                    icon: const FaIcon(
-                                      FontAwesomeIcons.trash,
-                                      color: Colors.white,
-                                    ),
-                                    label: const Text(
-                                      'Cancel Order',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red.shade600,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 10.h,
-                                        horizontal: 10.w,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12.r),
-                                      ),
-                                    ),
-                                    onPressed: () async {
-                                      bool confirm = await showDialog(
-                                        context: context,
-                                        builder: (_) => AlertDialog(
-                                          title: const Text('Cancel Order?'),
-                                          content: const Text('Do you want to cancel this order?'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context, false),
-                                              child: const Text('No'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context, true),
-                                              child: const Text('Yes'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-
-                                      if (confirm) {
-                                        await getxcontroller.cancelOrder(orderId, data);
-                                        Get.off(() => Freshpage());
-                                        Get.snackbar(
-                                          'Success',
-                                          'Order cancelled successfully!',
-                                          backgroundColor: Colors.green.shade300,
-                                          colorText: Colors.white,
-                                        );
-                                      }
-                                    },
-                                  ),
-
+                                // Feedback (non-cancelled)
                                 if (status != 'cancelled' && feedback.isNotEmpty)
                                   Padding(
-                                    padding: EdgeInsets.only(top: 6.h),
-                                    child: Text(
-                                      'Feedback: $feedback',
-                                      style: TextStyle(
-                                        fontStyle: FontStyle.italic,
-                                        color: Colors.grey.shade800,
-                                      ),
+                                    padding: EdgeInsets.only(top: 8.h),
+                                    child: Row(
+                                      children: [
+                                        FaIcon(FontAwesomeIcons.commentDots, size: 14.sp, color: Colors.grey.shade700),
+                                        SizedBox(width: 8.w),
+                                        Expanded(child: Text('Feedback: $feedback', style: TextStyle(color: Colors.grey.shade700, fontStyle: FontStyle.italic))),
+                                      ],
                                     ),
                                   ),
 
-                                SizedBox(height: 6.h),
-                                Text(
-                                  'Order Time: ${ts != null ? dateFormat.format(ts.toDate()) : 'No date'}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: themeColor,
-                                    fontSize: 14.sp,
+                                SizedBox(height: 12.h),
+
+                                // Cancel button (pending only)
+                                if (status == 'pending')
+                                  SizedBox(
+                                    width: 300.w,
+                                    child: ElevatedButton.icon(
+                                      icon: const FaIcon(FontAwesomeIcons.xmark, color: Colors.white),
+                                      label: const Text('Cancel Order', style: TextStyle(color: Colors.white)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red.shade600,
+                                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                                      ),
+                                      onPressed: () async {
+                                        bool confirm = await showDialog(
+                                          context: context,
+                                          builder: (_) => AlertDialog(
+                                            title: const Text('Cancel Order?'),
+                                            content: const Text('Do you want to cancel this order?'),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+                                              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes')),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm) {
+                                          await getxcontroller.cancelOrder(orderId!, orderToShow!);
+                                          Get.off(() => WebHomepage());
+                                          Get.snackbar('Success', 'Order cancelled successfully!', backgroundColor: Colors.green.shade300, colorText: Colors.white);
+                                        }
+                                      },
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -417,20 +391,12 @@ class LiveOrderPageWeb extends StatelessWidget {
                             height: 65.h,
                             width: 250.w,
                             child: ElevatedButton.icon(
-                              icon: const FaIcon(
-                                FontAwesomeIcons.plus,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                'Order More Food',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                              icon: const FaIcon(FontAwesomeIcons.plus, color: Colors.white),
+                              label: const Text('Order More Food', style: TextStyle(color: Colors.white)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: themeColor,
                                 padding: EdgeInsets.symmetric(vertical: 16.h),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                               ),
                               onPressed: () => Get.to(() => WebHomepage()),
                             ),

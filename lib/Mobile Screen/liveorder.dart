@@ -171,341 +171,340 @@ class LiveOrderPage extends StatelessWidget {
                 // UI Rendering
                 // -------------------------------
                 return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+  crossAxisAlignment: CrossAxisAlignment.stretch,
+  children: [
+
+    Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      margin: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+      shadowColor: Colors.blue.shade100,
+      child: Padding(
+        padding: EdgeInsets.all(16.r),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            // -------------------- STATUS BADGE --------------------
+            Row(
+              children: [
+                FaIcon(
+                  FontAwesomeIcons.circleCheck,
+                  color: status == "cancelled" ? Colors.red : themeColor,
+                  size: 18.sp,
+                ),
+                SizedBox(width: 8.w),
+                Text(
+                  status.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: status == "cancelled" ? Colors.red : themeColor,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+
+            // -------------------- CANCEL REASON --------------------
+            if (status == "cancelled")
+              Container(
+                padding: EdgeInsets.all(10.r),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Row(
                   children: [
-                    Card(
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16.r),
-                      ),
-                      margin: EdgeInsets.symmetric(
-                        vertical: 12.h,
-                        horizontal: 8.w,
-                      ),
-                      shadowColor: Colors.blue.shade100,
-                      child: Padding(
-                        padding: EdgeInsets.all(16.r),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Status
-                            Row(
-                              children: [
-                                FaIcon(
-                                  FontAwesomeIcons.circleCheck,
-                                  color:
-                                      status == "cancelled"
-                                          ? Colors.red
-                                          : themeColor,
-                                  size: 16.sp,
-                                ),
-                                SizedBox(width: 6.w),
-                                Text(
-                                  'Status: $status',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16.sp,
-                                    color:
-                                        status == "cancelled"
-                                            ? Colors.red
-                                            : themeColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 10.h),
-
-                            // Cancel feedback
-                            if (status == "cancelled")
-                              Row(
-                                children: [
-                                  FaIcon(
-                                    FontAwesomeIcons.commentSlash,
-                                    color: Colors.red.shade700,
-                                    size: 14.sp,
-                                  ),
-                                  SizedBox(width: 6.w),
-                                  Expanded(
-                                    child: Text(
-                                      feedback.isNotEmpty
-                                          ? 'Reason: $feedback'
-                                          : 'No reason provided by admin.',
-                                      style: TextStyle(
-                                        fontSize: 14.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.red.shade700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            SizedBox(height: 12.h),
-
-                            // Items list
-                            ...items.map((item) {
-                              final String name = item['name'] ?? 'Item';
-                              final int quantity =
-                                  (item['quantity'] ?? 1).toInt();
-                              final Map<String, dynamic>? variantMap =
-                                  item['selectedVariant'] != null
-                                      ? Map<String, dynamic>.from(
-                                        item['selectedVariant'],
-                                      )
-                                      : null;
-                              final double unitPrice =
-                                  variantMap != null
-                                      ? (variantMap['price'] ?? 0).toDouble()
-                                      : (item['price'] ?? 0).toDouble();
-                              final String variantText =
-                                  variantMap != null
-                                      ? "(${variantMap['size']})"
-                                      : "";
-                              final String imgUrl =
-                                  item['imgUrl']?.toString() ?? '';
-
-                              return Padding(
-                                padding: EdgeInsets.symmetric(vertical: 6.h),
-                                child: Row(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(12.r),
-                                      child: Container(
-                                        width: 80.w,
-                                        height: 80.w,
-                                        color: Colors.grey.shade200,
-                                        child:
-                                            imgUrl.isNotEmpty
-                                                ? CachedNetworkImage(
-                                                  imageUrl: imgUrl,
-                                                  fit: BoxFit.cover,
-                                                  placeholder:
-                                                      (context, url) =>
-                                                          Container(
-                                                            color:
-                                                                Colors
-                                                                    .grey
-                                                                    .shade300,
-                                                          ),
-                                                  errorWidget:
-                                                      (
-                                                        _,
-                                                        __,
-                                                        ___,
-                                                      ) => const Icon(
-                                                        Icons
-                                                            .broken_image_outlined,
-                                                      ),
-                                                )
-                                                : const Icon(
-                                                  Icons.broken_image_outlined,
-                                                ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 12.w),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "$name $variantText",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16.sp,
-                                            ),
-                                          ),
-                                          SizedBox(height: 6.h),
-                                          Text(
-                                            "$quantity × $unitPrice BDT",
-                                            style: TextStyle(
-                                              fontSize: 14.sp,
-                                              color: Colors.grey.shade700,
-                                            ),
-                                          ),
-                                          Text(
-                                            "Subtotal: ${unitPrice * quantity} BDT",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14.sp,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-
-                            SizedBox(height: 8.h),
-                            Text(
-                              'Total: $total BDT',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: themeColor,
-                                fontSize: 16.sp,
-                              ),
-                            ),
-
-                            SizedBox(height: 10.h),
-
-                            // Cancel button
-                            if (status == 'pending')
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red.shade600,
-                                  padding: EdgeInsets.symmetric(vertical: 6.h),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.r),
-                                  ),
-                                ),
-                                onPressed: () async {
-                                  bool confirm = await showDialog(
-                                    context: context,
-                                    builder:
-                                        (_) => AlertDialog(
-                                          title: const Text('Cancel Order?'),
-                                          content: const Text(
-                                            'Do you want to cancel this order?',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed:
-                                                  () => Navigator.pop(
-                                                    context,
-                                                    false,
-                                                  ),
-                                              child: const Text('No'),
-                                            ),
-                                            TextButton(
-                                              onPressed:
-                                                  () => Navigator.pop(
-                                                    context,
-                                                    true,
-                                                  ),
-                                              child: const Text('Yes'),
-                                            ),
-                                          ],
-                                        ),
-                                  );
-                                  if (confirm) {
-                                    await getxcontroller.cancelOrder(
-                                      orderId!,
-                                      orderToShow!,
-                                    );
-                                    Get.off(() => FreshMobile());
-                                    Get.snackbar(
-                                      'Success',
-                                      'Order cancelled successfully!',
-                                      backgroundColor: Colors.green.shade300,
-                                      colorText: Colors.white,
-                                    );
-                                  }
-                                },
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    FaIcon(
-                                      FontAwesomeIcons.xmark,
-                                      color: Colors.white,
-                                      size: 16.sp,
-                                    ),
-                                    SizedBox(width: 6.w),
-                                    const Text(
-                                      'Cancel Order',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                            // Feedback for non-cancelled
-                            if (status != "cancelled" && feedback.isNotEmpty)
-                              Padding(
-                                padding: EdgeInsets.only(top: 6.h),
-                                child: Row(
-                                  children: [
-                                    FaIcon(
-                                      FontAwesomeIcons.commentDots,
-                                      color: Colors.grey.shade800,
-                                      size: 14.sp,
-                                    ),
-                                    SizedBox(width: 6.w),
-                                    Expanded(
-                                      child: Text(
-                                        'Feedback: $feedback',
-                                        style: TextStyle(
-                                          fontStyle: FontStyle.italic,
-                                          color: Colors.grey.shade800,
-                                          fontSize: 12.sp,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                            SizedBox(height: 6.h),
-                            Row(
-                              children: [
-                                FaIcon(
-                                  FontAwesomeIcons.clock,
-                                  size: 14.sp,
-                                  color: themeColor,
-                                ),
-                                SizedBox(width: 6.w),
-                                Text(
-                                  'Order Time: $formattedDate',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: themeColor,
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                    FaIcon(
+                      FontAwesomeIcons.commentSlash,
+                      color: Colors.red.shade700,
+                      size: 14.sp,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        feedback.isNotEmpty
+                            ? "Reason: $feedback"
+                            : "No reason provided by admin",
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.sp,
                         ),
                       ),
                     ),
-
-                    SizedBox(height: 15.h),
-                    Align(
-                      alignment: Alignment.center,
-                      child: SizedBox(
-                        height: 60.h,
-                        width: 220.w,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: themeColor,
-                            padding: EdgeInsets.symmetric(vertical: 14.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                          ),
-                          onPressed: () => Get.to(() => MobileHomepage()),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              FaIcon(
-                                FontAwesomeIcons.bowlFood,
-                                size: 18.sp,
-                                color: Colors.white,
-                              ),
-                              SizedBox(width: 8.w),
-                              const Text(
-                                'Order More Food',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 20.h),
                   ],
-                );
+                ),
+              ),
+
+            SizedBox(height: 16.h),
+
+            // -------------------- ORDER DETAILS --------------------
+            Text(
+              "Order Details",
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8.h),
+
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12.r),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  // Order Time
+                  Row(
+                    children: [
+                      FaIcon(FontAwesomeIcons.clock,
+                          size: 14.sp, color: themeColor),
+                      SizedBox(width: 8.w),
+                      Text(
+                        "Order Time: $formattedDate",
+                        style: TextStyle(
+                          color: themeColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 8.h),
+
+                ]
+              ),
+            ),
+
+            SizedBox(height: 18.h),
+
+            // -------------------- ITEMS LIST --------------------
+            Text(
+              "Items",
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 10.h),
+
+            ...items.map((item) {
+              final name = item['name'] ?? 'Item';
+              final int quantity = (item['quantity'] ?? 1).toInt();
+              final variant = item['selectedVariant'] != null
+                  ? Map<String, dynamic>.from(item['selectedVariant'])
+                  : null;
+
+              final unitPrice = variant != null
+                  ? (variant['price'] ?? 0).toDouble()
+                  : (item['price'] ?? 0).toDouble();
+
+              final variantText = variant != null ? "(${variant['size']})" : "";
+              final imgUrl = item['imgUrl']?.toString() ?? '';
+
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.h),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12.r),
+                      child: Container(
+                        width: 80.w,
+                        height: 80.w,
+                        color: Colors.grey.shade200,
+                        child: imgUrl.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: imgUrl,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) => Container(
+                                  color: Colors.grey.shade300,
+                                ),
+                                errorWidget: (_, __, ___) =>
+                                    const Icon(Icons.broken_image_outlined),
+                              )
+                            : const Icon(Icons.broken_image_outlined),
+                      ),
+                    ),
+                    SizedBox(width: 14.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "$name $variantText",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15.sp,
+                            ),
+                          ),
+                          SizedBox(height: 6.h),
+                          Text(
+                            "$quantity × $unitPrice BDT",
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            "Subtotal: ${(unitPrice * quantity)} BDT",
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          )
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              );
+            }),
+
+            SizedBox(height: 10.h),
+
+            // -------------------- TOTAL --------------------
+            Text(
+              "Total: $total BDT",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 17.sp,
+                color: themeColor,
+              ),
+            ),
+
+            SizedBox(height: 16.h),
+
+            // -------------------- CANCEL BUTTON --------------------
+            if (status == "pending")
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+                onPressed: () async {
+                  bool confirm = await showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text("Cancel Order?"),
+                      content: const Text(
+                          "Do you want to cancel this order?"),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text("No"),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text("Yes"),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm) {
+                    await getxcontroller.cancelOrder(orderId!, orderToShow!);
+                    Get.off(() => FreshMobile());
+                    Get.snackbar(
+                      "Success",
+                      "Order cancelled successfully!",
+                      backgroundColor: Colors.green.shade300,
+                      colorText: Colors.white,
+                    );
+                  }
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FaIcon(FontAwesomeIcons.xmark,
+                        size: 16.sp, color: Colors.white),
+                    SizedBox(width: 8.w),
+                    const Text("Cancel Order",
+                        style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+
+            // -------------------- FEEDBACK (non-cancelled) --------------------
+            if (status != "cancelled" && feedback.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: 8.h),
+                child: Row(
+                  children: [
+                    FaIcon(
+                      FontAwesomeIcons.commentDots,
+                      size: 14.sp,
+                      color: Colors.grey.shade700,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        "Feedback: $feedback",
+                        style: TextStyle(
+                          fontStyle: FontStyle.italic,
+                          fontSize: 13.sp,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+
+    SizedBox(height: 20.h),
+
+    // -------------------- ORDER MORE FOOD BUTTON --------------------
+    Align(
+      alignment: Alignment.center,
+      child: SizedBox(
+        height: 60.h,
+        width: 220.w,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: themeColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+          ),
+          onPressed: () => Get.to(() => MobileHomepage()),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FaIcon(FontAwesomeIcons.bowlFood,
+                  size: 18.sp, color: Colors.white),
+              SizedBox(width: 8.w),
+              Text(
+                "Order More Food",
+                style: TextStyle(color: Colors.white, fontSize: 15.sp),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+
+    SizedBox(height: 20.h),
+  ],
+)
+;
               },
             ),
           ],

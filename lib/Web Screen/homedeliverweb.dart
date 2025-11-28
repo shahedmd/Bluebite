@@ -33,6 +33,11 @@ class DeliveryOrderWeb extends StatelessWidget {
     final DateFormat dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
     final GetxCtrl getxcontroller = Get.put(GetxCtrl());
 
+    // Get today's start and end time
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () => Get.to(() => CartPageWeb()),
@@ -54,13 +59,24 @@ class DeliveryOrderWeb extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.all(20.r),
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('orders')
-                      .where('orderType', isEqualTo: selectedtype)
-                      .where('name', isEqualTo: customerName)
-                      .where('phone', isEqualTo: customerPhone)
-                      .orderBy('timestamp', descending: true)
-                      .snapshots(),
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('orders')
+                          .where('orderType', isEqualTo: selectedtype)
+                          .where('name', isEqualTo: customerName)
+                          .where('phone', isEqualTo: customerPhone)
+                          .where(
+                            'timestamp',
+                            isGreaterThanOrEqualTo: Timestamp.fromDate(
+                              startOfDay,
+                            ),
+                          )
+                          .where(
+                            'timestamp',
+                            isLessThanOrEqualTo: Timestamp.fromDate(endOfDay),
+                          )
+                          .orderBy('timestamp', descending: true)
+                          .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
@@ -82,7 +98,7 @@ class DeliveryOrderWeb extends StatelessWidget {
                           children: [
                             SizedBox(height: 50.h),
                             Text(
-                              'No orders yet!',
+                              'No orders yet today!',
                               style: TextStyle(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
@@ -94,9 +110,12 @@ class DeliveryOrderWeb extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: themeColor,
                                 padding: EdgeInsets.symmetric(
-                                    horizontal: 24.w, vertical: 12.h),
+                                  horizontal: 24.w,
+                                  vertical: 12.h,
+                                ),
                                 shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.r)),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
                               ),
                               child: const Text(
                                 'Order Food',
@@ -108,42 +127,43 @@ class DeliveryOrderWeb extends StatelessWidget {
                       );
                     }
 
-                    // Select latest pending/processing/cancelled order
-                    Map<String, dynamic>? orderToShow;
-                    String? orderId;
+                    // Filter out delivered orders
+                    final todaysOrders =
+                        allOrders
+                            .map(
+                              (doc) => {
+                                ...doc.data() as Map<String, dynamic>,
+                                'id': doc.id,
+                              },
+                            )
+                            .where((order) => order['status'] != 'delivered')
+                            .toList();
 
-                    for (var doc in allOrders) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final status = data['status'] ?? 'pending';
-                      if (status == 'delivered') break; // stop at delivered
-                      if (status == 'pending' ||
-                          status == 'processing' ||
-                          status == 'cancelled') {
-                        orderToShow = data;
-                        orderId = doc.id;
-                        break;
-                      }
-                    }
-
-                    if (orderToShow == null) {
+                    if (todaysOrders.isEmpty) {
                       return Center(
                         child: Column(
                           children: [
                             SizedBox(height: 50.h),
                             Text(
-                              'No pending or cancelled orders!',
+                              'No pending/cancelled orders today!',
                               style: TextStyle(
-                                  fontSize: 16.sp, fontWeight: FontWeight.bold),
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             SizedBox(height: 20.h),
                             ElevatedButton(
                               onPressed: () => Get.to(() => WebHomepage()),
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: themeColor,
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 24.w, vertical: 12.h),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12.r))),
+                                backgroundColor: themeColor,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 24.w,
+                                  vertical: 12.h,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                              ),
                               child: const Text(
                                 'Order Food',
                                 style: TextStyle(color: Colors.white),
@@ -154,308 +174,419 @@ class DeliveryOrderWeb extends StatelessWidget {
                       );
                     }
 
-                    final items = List<Map<String, dynamic>>.from(
-                        orderToShow['items'] ?? []);
-                    final status = orderToShow['status'] ?? 'pending';
-                    final feedback = orderToShow['adminFeedback'] ?? '';
-                    final customername = orderToShow['name'] ?? '';
-                    final customerphone = orderToShow['phone'] ?? '';
-                    final customeraddress = orderToShow['address'] ?? '';
-                    final Timestamp? ts = orderToShow['timestamp'] as Timestamp?;
-                    final String formattedDate =
-                        ts != null ? dateFormat.format(ts.toDate()) : "No date";
-
-                    double total = items.fold(0.0, (sum, item) {
-                      final int q = (item['quantity'] ?? 1).toInt();
-                      final double p = item['selectedVariant'] != null
-                          ? (item['selectedVariant']['price'] ?? 0).toDouble()
-                          : (item['price'] ?? 0).toDouble();
-                      return sum + (p * q);
-                    });
-
-                    // Main Card UI
                     return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Card(
-                          elevation: 6,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16.r)),
-                          margin: EdgeInsets.symmetric(
-                              vertical: 12.h, horizontal: 8.w),
-                          shadowColor: Colors.blue.shade100,
-                          child: Padding(
-                            padding: EdgeInsets.all(16.r),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Status
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 12.w, vertical: 6.h),
-                                  decoration: BoxDecoration(
-                                    color: status == "cancelled"
-                                        ? Colors.red.shade400
-                                        : themeColor.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  child: Text(
-                                    'Status: $status',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16.sp,
-                                        color: status == "cancelled"
-                                            ? Colors.white
-                                            : themeColor),
-                                  ),
-                                ),
-                                SizedBox(height: 10.h),
+                      children:
+                          todaysOrders.map((orderToShow) {
+                            final orderId = orderToShow['id'] as String;
+                            final items = List<Map<String, dynamic>>.from(
+                              orderToShow['items'] ?? [],
+                            );
+                            final status = orderToShow['status'] ?? 'pending';
+                            final feedback = orderToShow['adminFeedback'] ?? '';
+                            final customername = orderToShow['name'] ?? '';
+                            final customerphone = orderToShow['phone'] ?? '';
+                            final customeraddress =
+                                orderToShow['address'] ?? '';
+                            final Timestamp? ts =
+                                orderToShow['timestamp'] as Timestamp?;
+                            final String formattedDate =
+                                ts != null
+                                    ? dateFormat.format(ts.toDate())
+                                    : "No date";
 
-                                // Admin feedback if cancelled
-                                if (status == "cancelled")
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 8.h),
-                                    child: Text(
-                                      feedback.isNotEmpty
-                                          ? 'Reason: $feedback'
-                                          : 'No reason provided by admin.',
-                                      style: TextStyle(
-                                          fontSize: 14.sp,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.red.shade700),
-                                    ),
-                                  ),
-
-                                // Customer info
-                                SizedBox(height: 6.h),
-                                Text(
-                                  'Name: $customername',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14.sp,
-                                      color: themeColor),
-                                ),
-                                Text(
-                                  'Phone: $customerphone',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14.sp,
-                                      color: themeColor),
-                                ),
-                                Text(
-                                  'Address: $customeraddress',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14.sp,
-                                      color: themeColor),
-                                ),
-                                SizedBox(height: 10.h),
-
-                                // Items list
-                                ...items.map((item) {
-                                  final String name = item['name'] ?? 'Item';
-                                  final int quantity =
-                                      (item['quantity'] ?? 1).toInt();
-                                  final Map<String, dynamic>? variantMap =
-                                      item['selectedVariant'] != null
-                                          ? Map<String, dynamic>.from(
-                                              item['selectedVariant'])
-                                          : null;
-                                  final double unitPrice = variantMap != null
-                                      ? (variantMap['price'] ?? 0).toDouble()
+                            double total = items.fold(0.0, (sum, item) {
+                              final int q = (item['quantity'] ?? 1).toInt();
+                              final double p =
+                                  item['selectedVariant'] != null
+                                      ? (item['selectedVariant']['price'] ?? 0)
+                                          .toDouble()
                                       : (item['price'] ?? 0).toDouble();
-                                  final String variantText =
-                                      variantMap != null
-                                          ? "(${variantMap['size']})"
-                                          : "";
-                                  final String imgUrl =
-                                      item['imgUrl']?.toString() ?? '';
+                              return sum + (p * q);
+                            });
 
-                                  return Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 6.h),
-                                    child: Row(
+                            Color statusColor =
+                                status == 'cancelled'
+                                    ? Colors.red
+                                    : status == 'pending'
+                                    ? Colors.orange
+                                    : Colors.green;
+
+                            return Card(
+                              elevation: 6,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                              ),
+                              margin: EdgeInsets.symmetric(
+                                vertical: 12.h,
+                                horizontal: 8.w,
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(16.r),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // STATUS
+                                    Row(
                                       children: [
-                                        ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(12.r),
-                                          child: Container(
-                                            width: 80.w,
-                                            height: 80.w,
-                                            color: Colors.grey.shade200,
-                                            child: imgUrl.isNotEmpty
-                                                ? CachedNetworkImage(
-                                                    imageUrl: imgUrl,
-                                                    fit: BoxFit.cover,
-                                                    placeholder: (context, url) =>
-                                                        Container(
-                                                            color: Colors.grey
-                                                                .shade300),
-                                                    errorWidget: (_, __, ___) =>
-                                                        const Icon(
-                                                            Icons.broken_image),
-                                                  )
-                                                : const Icon(Icons.broken_image),
-                                          ),
+                                        FaIcon(
+                                          FontAwesomeIcons.circleCheck,
+                                          color: statusColor,
+                                          size: 16.sp,
                                         ),
-                                        SizedBox(width: 12.w),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                "$name $variantText",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16.sp),
-                                              ),
-                                              SizedBox(height: 6.h),
-                                              Text(
-                                                "$quantity × $unitPrice BDT",
-                                                style: TextStyle(
-                                                    fontSize: 14.sp,
-                                                    color: Colors.grey.shade700),
-                                              ),
-                                              Text(
-                                                "Subtotal: ${unitPrice * quantity} BDT",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 14.sp,
-                                                    color: Colors.black87),
-                                              ),
-                                            ],
+                                        SizedBox(width: 6.w),
+                                        Text(
+                                          'Status: $status',
+                                          style: TextStyle(
+                                            color: statusColor,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ],
                                     ),
-                                  );
-                                }),
+                                    SizedBox(height: 12.h),
 
-                                SizedBox(height: 8.h),
-                                Text(
-                                  'Total: $total BDT',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16.sp,
-                                      color: themeColor),
-                                ),
-                                SizedBox(height: 12.h),
-
-                                // Cancel button for pending
-                                if (status == 'pending')
-                                  SizedBox(
-                                    width: 300.w,
-                                    child: ElevatedButton.icon(
-                                      icon: const FaIcon(
-                                        FontAwesomeIcons.xmark,
-                                        color: Colors.white,
-                                      ),
-                                      label: const Text(
-                                        'Cancel Order',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red.shade600,
-                                        padding: EdgeInsets.symmetric(
-                                            vertical: 12.h),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.r)),
-                                      ),
-                                      onPressed: () async {
-                                        bool confirm = await showDialog(
-                                          context: context,
-                                          builder: (_) => AlertDialog(
-                                            title: const Text('Cancel Order?'),
-                                            content: const Text(
-                                                'Do you want to cancel this order?'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context, false),
-                                                child: const Text('No'),
-                                              ),
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context, true),
-                                                child: const Text('Yes'),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                        if (confirm) {
-                                          await getxcontroller.cancelOrder(
-                                              orderId!, orderToShow!);
-                                          Get.off(() => WebHomepage());
-                                          Get.snackbar(
-                                            'Success',
-                                            'Order cancelled successfully!',
-                                            backgroundColor:
-                                                Colors.green.shade300,
-                                            colorText: Colors.white,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ),
-
-                                SizedBox(height: 8.h),
-                                // Order time
-                                Row(
-                                  children: [
-                                    FaIcon(
-                                      FontAwesomeIcons.clock,
-                                      size: 14.sp,
-                                      color: themeColor,
-                                    ),
-                                    SizedBox(width: 6.w),
+                                    // CUSTOMER INFO
+                                    // CUSTOMER INFO
                                     Text(
-                                      'Order Time: $formattedDate',
+                                      'Customer Info',
                                       style: TextStyle(
-                                          fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16.sp,
+                                      ),
+                                    ),
+                                    Divider(),
+                                    Text(
+                                      'Name: $customername',
+                                      style: TextStyle(fontSize: 14.sp),
+                                    ),
+                                    Text(
+                                      'Phone: $customerphone',
+                                      style: TextStyle(fontSize: 14.sp),
+                                    ),
+                                    Text(
+                                      'Address: $customeraddress',
+                                      style: TextStyle(fontSize: 14.sp),
+                                    ),
+
+                                    // Show table number if exists
+                                    if (orderToShow['tableNo'] != null &&
+                                        orderToShow['tableNo']
+                                            .toString()
+                                            .isNotEmpty)
+                                      Text(
+                                        'Table No: ${orderToShow['tableNo']}',
+                                        style: TextStyle(
                                           fontSize: 14.sp,
-                                          color: themeColor),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+
+                                    SizedBox(height: 12.h),
+
+                                    // ORDER ITEMS
+                                    Text(
+                                      'Order Items',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16.sp,
+                                      ),
+                                    ),
+                                    Divider(),
+                                    ...items.map((item) {
+                                      final String name = item['name'] ?? '';
+                                      final int quantity =
+                                          (item['quantity'] ?? 1).toInt();
+                                      final Map<String, dynamic>? variantMap =
+                                          item['selectedVariant'] != null
+                                              ? Map<String, dynamic>.from(
+                                                item['selectedVariant'],
+                                              )
+                                              : null;
+                                      final double unitPrice =
+                                          variantMap != null
+                                              ? (variantMap['price'] ?? 0)
+                                                  .toDouble()
+                                              : (item['price'] ?? 0).toDouble();
+                                      final String variantText =
+                                          variantMap != null
+                                              ? "(${variantMap['size']})"
+                                              : "";
+                                      final String imgUrl =
+                                          item['imgUrl']?.toString() ?? '';
+
+                                      return Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 8.h,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                              child: Container(
+                                                width: 80.w,
+                                                height: 80.w,
+                                                color: Colors.grey.shade200,
+                                                child:
+                                                    imgUrl.isNotEmpty
+                                                        ? CachedNetworkImage(
+                                                          imageUrl: imgUrl,
+                                                          fit: BoxFit.cover,
+                                                          placeholder:
+                                                              (
+                                                                _,
+                                                                __,
+                                                              ) => Container(
+                                                                color:
+                                                                    Colors
+                                                                        .grey
+                                                                        .shade300,
+                                                              ),
+                                                          errorWidget:
+                                                              (
+                                                                _,
+                                                                __,
+                                                                ___,
+                                                              ) => const Icon(
+                                                                Icons
+                                                                    .broken_image,
+                                                              ),
+                                                        )
+                                                        : const Icon(
+                                                          Icons.broken_image,
+                                                        ),
+                                              ),
+                                            ),
+                                            SizedBox(width: 12.w),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    '$name $variantText',
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16.sp,
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 4.h),
+                                                  Text(
+                                                    '$quantity × $unitPrice BDT',
+                                                    style: TextStyle(
+                                                      color:
+                                                          Colors.grey.shade700,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    'Subtotal: ${unitPrice * quantity} BDT',
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }),
+                                    Divider(),
+                                    Text(
+                                      'Total: $total BDT',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16.sp,
+                                        color: themeColor,
+                                      ),
+                                    ),
+                                    SizedBox(height: 12.h),
+
+                                    // FEEDBACK
+                                    if (status == 'cancelled' &&
+                                        feedback.isNotEmpty)
+                                      Text(
+                                        'Reason: $feedback',
+                                        style: TextStyle(
+                                          color: Colors.red.shade700,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    if (status != 'cancelled' &&
+                                        feedback.isNotEmpty)
+                                      Text(
+                                        'Feedback: $feedback',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade800,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    SizedBox(height: 12.h),
+
+                                    // ORDER TIME
+                                    Row(
+                                      children: [
+                                        FaIcon(
+                                          FontAwesomeIcons.clock,
+                                          size: 14.sp,
+                                          color: themeColor,
+                                        ),
+                                        SizedBox(width: 6.w),
+                                        Text(
+                                          'Order Time: $formattedDate',
+                                          style: TextStyle(color: themeColor),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 16.h),
+
+                                    // CANCEL BUTTON
+                                    if (status == 'pending')
+                                      SizedBox(
+                                        width: 300.w,
+                                        child: ElevatedButton.icon(
+                                          icon: const FaIcon(
+                                            FontAwesomeIcons.xmark,
+                                            color: Colors.white,
+                                          ),
+                                          label: const Text(
+                                            'Cancel Order',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                Colors.red.shade600,
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: 12.h,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                            ),
+                                          ),
+                                          onPressed: () async {
+                                            bool confirm = await showDialog(
+                                              context: context,
+                                              builder:
+                                                  (_) => AlertDialog(
+                                                    title: const Text(
+                                                      'Cancel Order?',
+                                                    ),
+                                                    content: const Text(
+                                                      'Do you want to cancel this order?',
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed:
+                                                            () => Navigator.pop(
+                                                              context,
+                                                              false,
+                                                            ),
+                                                        child: const Text('No'),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed:
+                                                            () => Navigator.pop(
+                                                              context,
+                                                              true,
+                                                            ),
+                                                        child: const Text(
+                                                          'Yes',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                            );
+
+                                            if (confirm) {
+                                              // Show a loading indicator while cancelling
+                                              showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder:
+                                                    (_) => const Center(
+                                                      child:
+                                                          CircularProgressIndicator(),
+                                                    ),
+                                              );
+
+                                              try {
+                                                // Wait for cancelOrder to finish
+                                                await getxcontroller
+                                                    .cancelOrder(
+                                                      orderId,
+                                                      orderToShow,
+                                                    );
+
+                                                // Close the loading dialog
+                                                Navigator.pop(context);
+
+                                                // Navigate to Freshpage (or DeliveryOrderWeb)
+                                                Get.off(
+                                                  () => DeliveryOrderWeb(
+                                                    selectedtype: selectedtype,
+                                                    customerName: customerName,
+                                                    customerPhone:
+                                                        customerPhone,
+                                                  ),
+                                                );
+
+                                                // Show success snackbar
+                                                Get.snackbar(
+                                                  'Success',
+                                                  'Order cancelled successfully!',
+                                                  backgroundColor:
+                                                      Colors.green.shade300,
+                                                  colorText: Colors.white,
+                                                );
+                                              } catch (e) {
+                                                Navigator.pop(
+                                                  context,
+                                                ); // Close loading dialog on error
+                                                Get.snackbar(
+                                                  'Error',
+                                                  'Failed to cancel order.',
+                                                  backgroundColor:
+                                                      Colors.red.shade300,
+                                                  colorText: Colors.white,
+                                                );
+                                              }
+                                            }
+                                          },
+                                        ),
+                                      ),
+
+                                    SizedBox(height: 12.h),
+                                    SizedBox(
+                                      width: 300.w,
+                                      child: ElevatedButton.icon(
+                                        icon: FaIcon(
+                                          FontAwesomeIcons.bowlFood,
+                                          color: Colors.white,
+                                        ),
+                                        label: const Text(
+                                          'Order More Food',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: themeColor,
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 12.h,
+                                          ),
+                                        ),
+                                        onPressed:
+                                            () => Get.to(() => WebHomepage()),
+                                      ),
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 20.h),
-                        Align(
-                          alignment: Alignment.center,
-                          child: SizedBox(
-                            height: 60.h,
-                            width: 220.w,
-                            child: ElevatedButton(
-                              onPressed: () => Get.to(() => WebHomepage()),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: themeColor,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12.r)),
-                                padding: EdgeInsets.symmetric(vertical: 14.h),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  FaIcon(
-                                    FontAwesomeIcons.bowlFood,
-                                    size: 18.sp,
-                                    color: Colors.white,
-                                  ),
-                                  SizedBox(width: 8.w),
-                                  const Text(
-                                    'Order More Food',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 50.h),
-                      ],
+                            );
+                          }).toList(),
                     );
                   },
                 ),

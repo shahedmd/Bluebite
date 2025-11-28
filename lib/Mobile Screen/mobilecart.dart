@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 import '../cartcontroller.dart';
 import '../firebasequery.dart';
 
@@ -21,6 +20,7 @@ class CartPageMobile extends StatelessWidget {
   final RxString selectedTable = '1'.obs;
   final RxString selectedOrderType = 'Inhouse'.obs;
   final Rxn<DateTime> selectedDateTime = Rxn<DateTime>();
+  final RxBool fromHome = false.obs; // Toggle for Home Delivery
 
   @override
   Widget build(BuildContext context) {
@@ -33,50 +33,37 @@ class CartPageMobile extends StatelessWidget {
         height: 56.h,
         child: FloatingActionButton.extended(
           onPressed: () async {
-            // Handle different order types
-            if (selectedOrderType.value == 'Inhouse') {
-              // No dialogs, just confirm directly
-              await controller.confirmOrder(
-                selectedTable.value,
-                selectedOrderType.value,
-                context,
-                selectedDateTime.value,
-            
-              );
-              return;
+            String? tableNoToSend = selectedTable.value;
+            if (selectedOrderType.value == 'Home Delivery' && fromHome.value) {
+              tableNoToSend = null; // From Home, no table
             }
 
-            // For Home Delivery and Prebooking: gather delivery details first
-            final delivery = await _showDeliveryDialog(context);
-            if (delivery == null) {
-              // user cancelled
-              return;
+            // Delivery info
+            Map<String, String>? delivery;
+            if (selectedOrderType.value == 'Home Delivery' || selectedOrderType.value == 'Prebooking') {
+              delivery = await _showDeliveryDialog(context);
+              if (delivery == null) return;
             }
 
-            // If Prebooking: after delivery details, let user select a time slot
+            // Prebooking date picker
             DateTime? finalDateTime = selectedDateTime.value;
             if (selectedOrderType.value == 'Prebooking') {
-              // If user hasn't picked a prebooking date earlier, ask them to pick it now
               if (selectedDateTime.value == null) {
                 await _pickDateTime(context);
-                if (selectedDateTime.value == null) {
-                  // user cancelled date picker
-                  return;
-                }
+                if (selectedDateTime.value == null) return;
+                finalDateTime = selectedDateTime.value;
               }
-
-           
             }
 
-            // Finally confirm order passing customer info
+            // Confirm Order
             await controller.confirmOrder(
-              selectedTable.value,
+              tableNoToSend ?? '', // If null, confirmOrder handles it
               selectedOrderType.value,
               context,
               finalDateTime,
-             deliveryName:   delivery['name']!,
-             deliveryAddress:  delivery['address']!,
-            deliveryPhone:   delivery['phone']!,
+              deliveryName: delivery?['name'],
+              deliveryPhone: delivery?['phone'],
+              deliveryAddress: delivery?['address'],
             );
           },
           backgroundColor: themeColor,
@@ -115,85 +102,123 @@ class CartPageMobile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Obx(() => Row(
+            Obx(() => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Table Dropdown
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: themeColor),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: DropdownButton<String>(
-                        value: selectedTable.value,
-                        underline: const SizedBox(),
-                        items: tables
-                            .map((t) => DropdownMenuItem(
-                                  value: t,
-                                  child: Text('Table $t'),
-                                ))
-                            .toList(),
-                        onChanged: (val) => selectedTable.value = val!,
-                      ),
-                    ),
-                    SizedBox(width: 20.w),
-
-                    // Order Type Dropdown
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: themeColor),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: DropdownButton<String>(
-                        value: selectedOrderType.value,
-                        underline: const SizedBox(),
-                        items: orderTypes
-                            .map((t) => DropdownMenuItem(
-                                  value: t,
-                                  child: Text(t),
-                                ))
-                            .toList(),
-                        onChanged: (val) async {
-                          selectedOrderType.value = val!;
-                          if (val == 'Prebooking') {
-                            await _pickDateTime(context);
-                          } else {
-                            selectedDateTime.value = null;
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                )),
-
-            // Selected DateTime for Prebooking
-            Obx(() => selectedOrderType.value == 'Prebooking' &&
-                    selectedDateTime.value != null
-                ? Padding(
-                    padding: EdgeInsets.only(top: 8.h, bottom: 12.h),
-                    child: Row(
+                    Row(
                       children: [
-                        const FaIcon(FontAwesomeIcons.calendarAlt, color: Colors.blue),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'Selected: ${selectedDateTime.value!.toString().substring(0, 16)}',
-                          style: TextStyle(
-                            color: themeColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14.sp,
+                        // Order Type Dropdown
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: themeColor),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: DropdownButton<String>(
+                              value: selectedOrderType.value,
+                              underline: const SizedBox(),
+                              isExpanded: true,
+                              items: orderTypes
+                                  .map((t) => DropdownMenuItem(
+                                        value: t,
+                                        child: Text(t),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) async {
+                                selectedOrderType.value = val!;
+                                if (val == 'Prebooking') {
+                                  await _pickDateTime(context);
+                                } else {
+                                  selectedDateTime.value = null;
+                                }
+
+                                // Reset Home Delivery toggle when not selected
+                                if (val != 'Home Delivery') fromHome.value = false;
+                              },
+                            ),
                           ),
                         ),
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: () async => await _pickDateTime(context),
-                          icon: const FaIcon(FontAwesomeIcons.edit, size: 18),
-                          label: const Text('Change'),
-                        ),
+                        SizedBox(width: 12.w),
+
+                        // Home Delivery toggle only visible if Home Delivery selected
+                        if (selectedOrderType.value == 'Home Delivery')
+                          Expanded(
+                            flex: 3,
+                            child: Row(
+                              children: [
+                                Text("From Home"),
+                                SizedBox(width: 6.w),
+                                Obx(() => Switch(
+                                      value: fromHome.value,
+                                      onChanged: (val) => fromHome.value = val,
+                                      activeColor: themeColor,
+                                    )),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
-                  )
-                : const SizedBox()),
+
+                    SizedBox(height: 12.h),
+
+                    // Table Dropdown, visible only if not fromHome or Inhouse/Prebooking
+                    if ((selectedOrderType.value != 'Home Delivery') ||
+                        (selectedOrderType.value == 'Home Delivery' && !fromHome.value))
+                      Row(
+                        children: [
+                          Text('Select Table:'),
+                          SizedBox(width: 8.w),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: themeColor),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: DropdownButton<String>(
+                              value: selectedTable.value,
+                              underline: const SizedBox(),
+                              items: tables
+                                  .map((t) => DropdownMenuItem(
+                                        value: t,
+                                        child: Text('Table $t'),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) => selectedTable.value = val!,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    // Prebooking selected date display
+                    if (selectedOrderType.value == 'Prebooking' &&
+                        selectedDateTime.value != null)
+                      Padding(
+                        padding: EdgeInsets.only(top: 8.h),
+                        child: Row(
+                          children: [
+                            const FaIcon(FontAwesomeIcons.calendarAlt, color: Colors.blue),
+                            SizedBox(width: 8.w),
+                            Text(
+                              'Selected: ${selectedDateTime.value!.toString().substring(0, 16)}',
+                              style: TextStyle(
+                                color: themeColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                            const Spacer(),
+                            TextButton.icon(
+                              onPressed: () async => await _pickDateTime(context),
+                              icon: const FaIcon(FontAwesomeIcons.edit, size: 18),
+                              label: const Text('Change'),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                )),
 
             SizedBox(height: 10.h),
 
@@ -298,7 +323,7 @@ class CartPageMobile extends StatelessWidget {
     );
   }
 
-  // -------- HELPER: PICK DATE & TIME (existing) --------
+  // -------- HELPER: PICK DATE & TIME --------
   Future<void> _pickDateTime(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -336,7 +361,6 @@ class CartPageMobile extends StatelessWidget {
   }
 
   // -------- HELPER: SHOW DELIVERY DIALOG --------
-  // Returns a map with keys: 'name', 'phone', 'address' or null if cancelled
   Future<Map<String, String>?> _showDeliveryDialog(BuildContext context) async {
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();

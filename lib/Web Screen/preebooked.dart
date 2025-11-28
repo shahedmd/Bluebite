@@ -29,11 +29,19 @@ class PrebookOrderWeb extends StatelessWidget {
   });
 
   final GetxCtrl getxcontroller = Get.put(GetxCtrl());
+  static const Duration prebookingDuration = Duration(hours: 2);
 
   @override
   Widget build(BuildContext context) {
     final themeColor = Colors.blue.shade800;
-    const prebookingDuration = Duration(hours: 2);
+    final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
+
+    // Helper: determine overlap between two slots (both with same duration)
+    bool overlaps(DateTime orderPrebook, DateTime slotStart, Duration slotDuration) {
+      final slotEnd = slotStart.add(slotDuration);
+      final orderEnd = orderPrebook.add(slotDuration);
+      return slotStart.isBefore(orderEnd) && slotEnd.isAfter(orderPrebook);
+    }
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
@@ -45,27 +53,24 @@ class PrebookOrderWeb extends StatelessWidget {
         child: Column(
           children: [
             const CustomNavbar(),
-            SizedBox(height: 20.h),
+            SizedBox(height: 24.h),
             centeredContent(
               child: Text(
-                "Prebook Orders For Table: $tableNo",
-                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                "Prebook Orders — Table $tableNo",
+                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
               ),
             ),
+            SizedBox(height: 18.h),
             centeredContent(
               child: Padding(
                 padding: EdgeInsets.all(20.r),
                 child: StreamBuilder<QuerySnapshot>(
-                  stream:
-                      FirebaseFirestore.instance
-                          .collection('orders')
-                          .where('tableNo', isEqualTo: tableNo)
-                          .where('orderType', isEqualTo: selectedtype)
-                          .orderBy(
-                            'timestamp',
-                            descending: true,
-                          ) // newest first
-                          .snapshots(),
+                  stream: FirebaseFirestore.instance
+                      .collection('orders')
+                      .where('tableNo', isEqualTo: tableNo)
+                      .where('orderType', isEqualTo: selectedtype)
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
@@ -81,37 +86,25 @@ class PrebookOrderWeb extends StatelessWidget {
                     }
 
                     final docs = snapshot.data!.docs;
+
+                    // Find the most relevant order per mobile logic:
+                    // 1) look for the newest order whose prebookSlot overlaps with requested timeslot
+                    // 2) if found and not delivered -> show it
+                    // 3) if found and delivered -> show 'no orders'
+                    // 4) if none found, check the most recent order overall; if it's cancelled -> show it (like mobile)
                     Map<String, dynamic>? displayData;
                     String displayOrderId = '';
 
-                    // Helper: check if timeslots overlap
-                    bool overlaps(
-                      DateTime orderPrebook,
-                      DateTime slotStart,
-                      Duration slotDuration,
-                    ) {
-                      final slotEnd = slotStart.add(slotDuration);
-                      final orderEnd = orderPrebook.add(slotDuration);
-                      return slotStart.isBefore(orderEnd) &&
-                          slotEnd.isAfter(orderPrebook);
-                    }
-
-                    // 1) Find most recent overlapping order
                     for (var doc in docs) {
                       final data = doc.data() as Map<String, dynamic>;
-                      final Timestamp? prebookTs =
-                          data['prebookSlot'] as Timestamp?;
+                      final Timestamp? prebookTs = data['prebookSlot'] as Timestamp?;
                       if (prebookTs == null) continue;
                       final orderPrebook = prebookTs.toDate();
 
-                      if (overlaps(
-                        orderPrebook,
-                        timeslot,
-                        prebookingDuration,
-                      )) {
-                        final status =
-                            (data['status'] ?? '').toString().toLowerCase();
+                      if (overlaps(orderPrebook, timeslot, prebookingDuration)) {
+                        final status = (data['status'] ?? '').toString().toLowerCase();
                         if (status == 'delivered') {
+                          // delivered overlapping slot -> treat as none
                           displayData = null;
                           displayOrderId = '';
                         } else {
@@ -122,13 +115,11 @@ class PrebookOrderWeb extends StatelessWidget {
                       }
                     }
 
-                    // 2) If no overlapping order, check latest order overall
+                    // If not found by overlap, check latest doc for cancelled
                     if (displayData == null && docs.isNotEmpty) {
                       final mostRecent = docs.first;
-                      final mostData =
-                          mostRecent.data() as Map<String, dynamic>;
-                      final mostStatus =
-                          (mostData['status'] ?? '').toString().toLowerCase();
+                      final mostData = mostRecent.data() as Map<String, dynamic>;
+                      final mostStatus = (mostData['status'] ?? '').toString().toLowerCase();
                       if (mostStatus == 'cancelled') {
                         displayData = mostData;
                         displayOrderId = mostRecent.id;
@@ -138,333 +129,333 @@ class PrebookOrderWeb extends StatelessWidget {
                     if (displayData == null) {
                       return Center(
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(height: 50.h),
+                            SizedBox(height: 40.h),
                             Text(
                               '✅ No orders found for this timeslot!',
                               textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              'This timeslot is available — customers can place a prebooking here.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14.sp, color: Colors.grey[700]),
                             ),
                             SizedBox(height: 20.h),
                             ElevatedButton.icon(
-                              icon: const FaIcon(
-                                FontAwesomeIcons.plus,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                'Order More Food',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                              icon: const FaIcon(FontAwesomeIcons.plus),
+                              label: const Text('Order More Food'),
                               style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 24.w,
-                                  vertical: 12.h,
-                                ),
                                 backgroundColor: themeColor,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                               ),
                               onPressed: () => Get.to(() => WebHomepage()),
                             ),
+                            SizedBox(height: 40.h),
                           ],
                         ),
                       );
                     }
 
-                    // --- Display order ---
+                    // Build display for the selected order
                     final data = displayData;
                     final orderId = displayOrderId;
-                    final items = List<Map<String, dynamic>>.from(
-                      data['items'] ?? [],
-                    );
-                    final status = data['status'] ?? 'pending';
-                    final feedback = data['adminFeedback'] ?? '';
-                    final customername = data['name'] ?? '';
-                    final customerphone = data['phone'] ?? '';
-                    final customeradd = data['address'] ?? '';
-                    final Timestamp? ts = data['prebookSlot'] as Timestamp?;
-                    final DateTime startTime = ts?.toDate() ?? DateTime.now();
+                    final items = List<Map<String, dynamic>>.from(data['items'] ?? []);
+                    final status = (data['status'] ?? 'pending').toString();
+                    final feedback = (data['adminFeedback'] ?? '').toString();
+                    final customername = (data['name'] ?? '').toString();
+                    final customerphone = (data['phone'] ?? '').toString();
+                    final customeradd = (data['address'] ?? '').toString();
+                    final Timestamp? preTs = data['prebookSlot'] as Timestamp?;
+                    final DateTime startTime = preTs?.toDate() ?? DateTime.now();
                     final DateTime endTime = startTime.add(prebookingDuration);
+                    final Timestamp? ts = data['timestamp'] as Timestamp?;
+                    final String orderedAt = ts != null ? dateFormat.format(ts.toDate()) : dateFormat.format(DateTime.now());
 
-                    final total = items.fold<double>(0.0, (sum, item) {
-                      num priceNum;
-                      if (item['selectedVariant'] != null) {
-                        priceNum =
-                            (item['selectedVariant']['price'] ?? 0) as num;
+                    // Compute total robustly
+                    double total = 0.0;
+                    for (var item in items) {
+                      final qRaw = item['quantity'] ?? 1;
+                      final qty = (qRaw is int) ? qRaw : (qRaw is double ? qRaw.toInt() : int.tryParse(qRaw.toString()) ?? 1);
+                      if (item['selectedVariant'] != null && item['selectedVariant'] is Map) {
+                        final sv = Map<String, dynamic>.from(item['selectedVariant']);
+                        final priceRaw = sv['price'] ?? 0;
+                        final price = (priceRaw is num) ? (priceRaw).toDouble() : double.tryParse(priceRaw.toString()) ?? 0.0;
+                        total += price * qty;
                       } else {
-                        priceNum = (item['price'] ?? 0) as num;
+                        final priceRaw = item['price'] ?? 0;
+                        final price = (priceRaw is num) ? (priceRaw).toDouble() : double.tryParse(priceRaw.toString()) ?? 0.0;
+                        total += price * qty;
                       }
-                      final quantity = (item['quantity'] ?? 1) as int;
-                      return sum + (priceNum.toDouble() * quantity.toDouble());
-                    });
+                    }
 
-                    final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
-
+                    // ---------- Web-optimized two-column card ----------
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Card(
                           elevation: 6,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.r),
-                          ),
-                          margin: EdgeInsets.symmetric(
-                            vertical: 12.h,
-                            horizontal: 8.w,
-                          ),
-                          shadowColor: Colors.blue.shade100,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
+                          margin: EdgeInsets.symmetric(vertical: 12.h, horizontal: 6.w),
                           child: Padding(
-                            padding: EdgeInsets.all(16.r),
+                            padding: EdgeInsets.all(18.r),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 12.w,
-                                    vertical: 6.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        status == "cancelled"
-                                            ? Colors.red.shade400
-                                            : themeColor.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  child: Text(
-                                    'Status: $status',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16.sp,
-                                      color:
-                                          status == "cancelled"
-                                              ? Colors.white
-                                              : themeColor,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 10.h),
-                                Text(
-                                  'Time Slot: ${dateFormat.format(startTime)} - ${DateFormat('hh:mm a').format(endTime)}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14.sp,
-                                    color: Colors.grey.shade800,
-                                  ),
-                                ),
-                                SizedBox(height: 6.h),
-                                Text(
-                                  'Ordered At: ${data['timestamp'] != null ? dateFormat.format((data['timestamp'] as Timestamp).toDate()) : dateFormat.format(DateTime.now())}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14.sp,
-                                    color: Colors.grey.shade800,
-                                  ),
-                                ),
-                                SizedBox(height: 10.h),
-
-                                Text(
-                                  customername,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-                                 Text(
-                                  customerphone,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-
-                                Text(
-                                  customeradd,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-
-                                // Items
-                                ...items.map((item) {
-                                  final name =
-                                      item['name']?.toString() ??
-                                      'Unnamed Item';
-                                  final quantity =
-                                      (item['quantity'] ?? 1) as int;
-                                  final selectedVariant =
-                                      item['selectedVariant'] != null
-                                          ? Map<String, dynamic>.from(
-                                            item['selectedVariant'],
-                                          )
-                                          : null;
-                                  final price =
-                                      selectedVariant != null
-                                          ? (selectedVariant['price'] ?? 0)
-                                              .toDouble()
-                                          : (item['price'] ?? 0).toDouble();
-                                  final variantName =
-                                      selectedVariant != null
-                                          ? selectedVariant['size'] ?? ''
-                                          : '';
-                                  final imgUrl =
-                                      item['imgUrl']?.toString() ?? '';
-
-                                  return Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      vertical: 6.h,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            12.r,
+                                // STATUS row
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                                      decoration: BoxDecoration(
+                                        color: status == 'cancelled' ? Colors.red.shade400 : themeColor.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(12.r),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          FaIcon(
+                                            status == 'cancelled' ? FontAwesomeIcons.exclamationTriangle : FontAwesomeIcons.clock,
+                                            size: 14.sp,
+                                            color: status == 'cancelled' ? Colors.white : themeColor,
                                           ),
-                                          child: Container(
-                                            width: 80.w,
-                                            height: 80.w,
-                                            color: Colors.grey.shade200,
-                                            child: CachedNetworkImage(
-                                              imageUrl: imgUrl,
-                                              fit: BoxFit.cover,
-                                              placeholder:
-                                                  (_, __) => const Center(
-                                                    child:
-                                                        CircularProgressIndicator(),
-                                                  ),
-                                              errorWidget:
-                                                  (_, __, ___) => const Icon(
-                                                    Icons.broken_image_outlined,
-                                                  ),
+                                          SizedBox(width: 8.w),
+                                          Text(
+                                            status.toUpperCase(),
+                                            style: TextStyle(
+                                              color: status == 'cancelled' ? Colors.white : themeColor,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                        ),
-                                        SizedBox(width: 16.w),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                name,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16.sp,
-                                                ),
-                                              ),
-                                              SizedBox(height: 6.h),
-                                              Text(
-                                                variantName.isNotEmpty
-                                                    ? '$quantity x $variantName: $price BDT'
-                                                    : '$quantity x $price BDT',
-                                                style: TextStyle(
-                                                  fontSize: 14.sp,
-                                                  color: Colors.grey.shade700,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  );
-                                }),
-
-                                SizedBox(height: 8.h),
-                                Text(
-                                  'Total: $total BDT',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: themeColor,
-                                    fontSize: 16.sp,
-                                  ),
+                                    const Spacer(),
+                                    if (feedback.isNotEmpty)
+                                      Row(
+                                        children: [
+                                          FaIcon(FontAwesomeIcons.commentDots, size: 14.sp, color: Colors.grey.shade700),
+                                          SizedBox(width: 6.w),
+                                          Text(feedback, style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade700)),
+                                        ],
+                                      ),
+                                  ],
                                 ),
 
-                                if (status == 'pending')
-                                  ElevatedButton.icon(
-                                    icon: const FaIcon(
-                                      FontAwesomeIcons.trash,
-                                      color: Colors.white,
-                                    ),
-                                    label: const Text(
-                                      'Cancel Order',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red.shade600,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 10.h,
-                                        horizontal: 10.w,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          12.r,
+                                SizedBox(height: 18.h),
+
+                                // Two-column: Customer Info (left) | Order Info (right)
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Left: Customer Info
+                                    Expanded(
+                                      flex: 6,
+                                      child: Container(
+                                        padding: EdgeInsets.all(14.r),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius: BorderRadius.circular(12.r),
                                         ),
-                                      ),
-                                    ),
-                                    onPressed: () async {
-                                      bool confirm = await showDialog(
-                                        context: context,
-                                        builder:
-                                            (_) => AlertDialog(
-                                              title: const Text(
-                                                'Cancel Order?',
-                                              ),
-                                              content: const Text(
-                                                'Do you want to cancel this order?',
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed:
-                                                      () => Navigator.pop(
-                                                        context,
-                                                        false,
-                                                      ),
-                                                  child: const Text('No'),
-                                                ),
-                                                TextButton(
-                                                  onPressed:
-                                                      () => Navigator.pop(
-                                                        context,
-                                                        true,
-                                                      ),
-                                                  child: const Text('Yes'),
-                                                ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text('Customer Info', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
+                                            SizedBox(height: 8.h),
+                                            Row(
+                                              children: [
+                                                FaIcon(FontAwesomeIcons.user, size: 14.sp, color: themeColor),
+                                                SizedBox(width: 8.w),
+                                                Expanded(child: Text(customername, style: TextStyle(fontWeight: FontWeight.w600))),
                                               ],
                                             ),
-                                      );
-
-                                      if (confirm) {
-                                        await getxcontroller.cancelOrder(
-                                          orderId,
-                                          data,
-                                        );
-                                        Get.off(() => Freshpage());
-                                        Get.snackbar(
-                                          'Success',
-                                          'Order cancelled successfully!',
-                                          backgroundColor:
-                                              Colors.green.shade300,
-                                          colorText: Colors.white,
-                                        );
-                                      }
-                                    },
-                                  ),
-
-                                if (feedback.isNotEmpty)
-                                  Padding(
-                                    padding: EdgeInsets.only(top: 6.h),
-                                    child: Text(
-                                      'Feedback: $feedback',
-                                      style: TextStyle(
-                                        fontStyle: FontStyle.italic,
-                                        color: Colors.grey.shade800,
+                                            SizedBox(height: 8.h),
+                                            Row(
+                                              children: [
+                                                FaIcon(FontAwesomeIcons.phone, size: 14.sp, color: themeColor),
+                                                SizedBox(width: 8.w),
+                                                Expanded(child: Text(customerphone.isNotEmpty ? customerphone : 'No phone')),
+                                              ],
+                                            ),
+                                            SizedBox(height: 8.h),
+                                            Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                FaIcon(FontAwesomeIcons.locationDot, size: 14.sp, color: themeColor),
+                                                SizedBox(width: 8.w),
+                                                Expanded(child: Text(customeradd.isNotEmpty ? customeradd : 'No address')),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                    ),
+
+                                    SizedBox(width: 16.w),
+
+                                    // Right: Order Info
+                                    Expanded(
+                                      flex: 5,
+                                      child: Container(
+                                        padding: EdgeInsets.all(14.r),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius: BorderRadius.circular(12.r),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text('Order Info', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
+                                            SizedBox(height: 8.h),
+                                            Row(
+                                              children: [
+                                                FaIcon(FontAwesomeIcons.clock, size: 14.sp, color: themeColor),
+                                                SizedBox(width: 8.w),
+                                                Expanded(child: Text('Time Slot: ${dateFormat.format(startTime)} - ${DateFormat('hh:mm a').format(endTime)}')),
+                                              ],
+                                            ),
+                                            SizedBox(height: 8.h),
+                                            Row(
+                                              children: [
+                                                FaIcon(FontAwesomeIcons.receipt, size: 14.sp, color: themeColor),
+                                                SizedBox(width: 8.w),
+                                                Expanded(child: Text('Ordered At: $orderedAt')),
+                                              ],
+                                            ),
+                                            SizedBox(height: 8.h),
+                                            Row(
+                                              children: [
+                                                FaIcon(FontAwesomeIcons.table, size: 14.sp, color: themeColor),
+                                                SizedBox(width: 8.w),
+                                                Expanded(child: Text('Table: $tableNo')),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                SizedBox(height: 20.h),
+
+                                // Items full width
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text('Items', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                                ),
+                                SizedBox(height: 10.h),
+
+                                // Items list — each item row
+                                Column(
+                                  children: items.map((item) {
+                                    final name = (item['name'] ?? 'Item').toString();
+                                    final qRaw = item['quantity'] ?? 1;
+                                    final qty = (qRaw is int) ? qRaw : (qRaw is double ? qRaw.toInt() : int.tryParse(qRaw.toString()) ?? 1);
+                                    Map<String, dynamic>? variant;
+                                    if (item['selectedVariant'] != null && item['selectedVariant'] is Map) {
+                                      variant = Map<String, dynamic>.from(item['selectedVariant']);
+                                    }
+                                    final double price = variant != null
+                                        ? ((variant['price'] ?? 0) is num ? (variant['price'] as num).toDouble() : double.tryParse((variant['price'] ?? '0').toString()) ?? 0)
+                                        : ((item['price'] ?? 0) is num ? (item['price'] as num).toDouble() : double.tryParse((item['price'] ?? '0').toString()) ?? 0);
+                                    final variantText = variant != null ? (variant['size'] ?? '') : '';
+                                    final imgUrl = (item['imgUrl'] ?? '').toString();
+
+                                    return Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 8.h),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(10.r),
+                                            child: Container(
+                                              width: 80.w,
+                                              height: 80.w,
+                                              color: Colors.grey.shade200,
+                                              child: imgUrl.isNotEmpty
+                                                  ? CachedNetworkImage(
+                                                      imageUrl: imgUrl,
+                                                      fit: BoxFit.cover,
+                                                      placeholder: (_, __) => Container(color: Colors.grey.shade300),
+                                                      errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
+                                                    )
+                                                  : const Icon(Icons.broken_image),
+                                            ),
+                                          ),
+                                          SizedBox(width: 12.w),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text('$name ${variantText.isNotEmpty ? "($variantText)" : ""}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                                                SizedBox(height: 6.h),
+                                                Text('$qty × $price BDT', style: TextStyle(color: Colors.grey.shade700)),
+                                                SizedBox(height: 4.h),
+                                                Text('Subtotal: ${qty * price} BDT', style: TextStyle(fontWeight: FontWeight.bold)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+
+                                SizedBox(height: 12.h),
+                                Divider(),
+
+                                // Total + actions row
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text('Total: $total BDT', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: themeColor)),
+                                    ),
+
+                                    // Cancel button (only pending)
+                                    if (status == 'pending')
+                                      ElevatedButton.icon(
+                                        icon: const FaIcon(FontAwesomeIcons.trash, color: Colors.white),
+                                        label: const Text('Cancel Order', style: TextStyle(color: Colors.white)),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red.shade600,
+                                          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                        ),
+                                        onPressed: () async {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (_) => AlertDialog(
+                                              title: const Text('Cancel Order?'),
+                                              content: const Text('Do you want to cancel this order?'),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+                                                TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes')),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            await getxcontroller.cancelOrder(orderId, data);
+                                            Get.off(() => Freshpage());
+                                            Get.snackbar('Success', 'Order cancelled successfully!', backgroundColor: Colors.green.shade300, colorText: Colors.white);
+                                          }
+                                        },
+                                      ),
+                                  ],
+                                ),
+
+                                // Feedback (if provided and not cancelled)
+                                if (status != 'cancelled' && feedback.isNotEmpty)
+                                  Padding(
+                                    padding: EdgeInsets.only(top: 10.h),
+                                    child: Row(
+                                      children: [
+                                        FaIcon(FontAwesomeIcons.commentDots, size: 14.sp, color: Colors.grey.shade700),
+                                        SizedBox(width: 8.w),
+                                        Expanded(child: Text('Feedback: $feedback', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey.shade700))),
+                                      ],
                                     ),
                                   ),
                               ],
@@ -472,40 +463,34 @@ class PrebookOrderWeb extends StatelessWidget {
                           ),
                         ),
 
-                        SizedBox(height: 15.h),
-                        Align(
-                          alignment: Alignment.center,
+                        SizedBox(height: 18.h),
+
+                        // Order more button centered
+                        Center(
                           child: SizedBox(
-                            height: 65.h,
-                            width: 250.w,
+                            height: 54.h,
+                            width: 220.w,
                             child: ElevatedButton.icon(
-                              icon: const FaIcon(
-                                FontAwesomeIcons.plus,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                'Order More Food',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                              icon: const FaIcon(FontAwesomeIcons.plusCircle, color: Colors.white,),
+                              label: const Text('Order More Food', style: TextStyle(color: Colors.white),),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: themeColor,
-                                padding: EdgeInsets.symmetric(vertical: 16.h),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                               ),
                               onPressed: () => Get.to(() => WebHomepage()),
                             ),
                           ),
                         ),
-                        SizedBox(height: 20.h),
+
+                        SizedBox(height: 30.h),
                       ],
                     );
                   },
                 ),
               ),
             ),
-            SizedBox(height: 650.h),
+            SizedBox(height: 200.h),
             BlueBiteBottomNavbar(),
           ],
         ),

@@ -208,86 +208,201 @@ class Prebookorder extends StatelessWidget {
                         horizontal: 5.w,
                       ),
                       child: Padding(
-                        padding: EdgeInsets.all(12.r),
+                        padding: EdgeInsets.all(14.r),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Status
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 6.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color:
-                                    status == "cancelled"
-                                        ? Colors.red.shade400
-                                        : themeColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: Row(
-                                children: [
-                                  FaIcon(
-                                    FontAwesomeIcons.infoCircle,
-                                    size: 14.sp,
-                                    color:
-                                        status == "cancelled"
-                                            ? Colors.white
-                                            : themeColor,
-                                  ),
-                                  SizedBox(width: 6.w),
-                                  Text(
-                                    'Status: $status',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14.sp,
+                            // ---------------- STATUS BADGE -----------------
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 14.w,
+                                  vertical: 8.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      status == "cancelled"
+                                          ? Colors.red.shade400
+                                          : themeColor.withOpacity(0.18),
+                                  borderRadius: BorderRadius.circular(30.r),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    FaIcon(
+                                      FontAwesomeIcons.circleInfo,
+                                      size: 16.sp,
                                       color:
                                           status == "cancelled"
                                               ? Colors.white
                                               : themeColor,
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(width: 8.w),
+                                    Text(
+                                      status.toUpperCase(),
+                                      style: TextStyle(
+                                        color:
+                                            status == "cancelled"
+                                                ? Colors.white
+                                                : themeColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            SizedBox(height: 16.h),
+
+                            // ---------------- CUSTOMER INFO -----------------
+                            Text(
+                              "Customer Information",
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                             SizedBox(height: 8.h),
 
-                            // Time Slot
+                            Container(
+                              padding: EdgeInsets.all(12.r),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.person,
+                                        size: 18.sp,
+                                        color: themeColor,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Expanded(
+                                        child: Text(
+                                          customername,
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.phone,
+                                        size: 18.sp,
+                                        color: themeColor,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Expanded(
+                                        child: Text(
+                                          data['phone'] ?? "No phone",
+                                          style: TextStyle(fontSize: 13.sp),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.location_on,
+                                        size: 18.sp,
+                                        color: themeColor,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Expanded(
+                                        child: Text(
+                                          customeradd,
+                                          style: TextStyle(fontSize: 13.sp),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            SizedBox(height: 16.h),
+
+                            // ---------------- ORDER INFO -----------------
                             Text(
-                              'Time Slot: ${dateFormat.format(startTime)} - ${DateFormat('hh:mm a').format(endTime)}',
+                              "Order Details",
                               style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14.sp,
-                                color: Colors.grey.shade800,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+
+                            Container(
+                              padding: EdgeInsets.all(12.r),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.schedule,
+                                        size: 18.sp,
+                                        color: themeColor,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Expanded(
+                                        child: Text(
+                                          "Time Slot:\n${dateFormat.format(startTime)} - ${DateFormat('hh:mm a').format(endTime)}",
+                                          style: TextStyle(fontSize: 13.sp),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.receipt_long,
+                                        size: 18.sp,
+                                        color: themeColor,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Expanded(
+                                        child: Text(
+                                          "Ordered At:\n${data['timestamp'] != null ? dateFormat.format((data['timestamp'] as Timestamp).toDate()) : dateFormat.format(DateTime.now())}",
+                                          style: TextStyle(fontSize: 13.sp),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            SizedBox(height: 16.h),
+
+                            // ---------------- ITEM LIST -----------------
+                            Text(
+                              "Items",
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                             SizedBox(height: 6.h),
 
-                            // Ordered At
-                            Text(
-                              'Ordered At: ${data['timestamp'] != null ? dateFormat.format((data['timestamp'] as Timestamp).toDate()) : dateFormat.format(DateTime.now())}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14.sp,
-                                color: Colors.grey.shade800,
-                              ),
-                            ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              customername,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12.sp,
-                              ),
-                            ),
-                            Text(
-                              customeradd,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12.sp,
-                              ),
-                            ),
-                            // Items
                             ...items.map((item) {
                               final name =
                                   item['name']?.toString() ?? 'Unnamed Item';
@@ -310,15 +425,15 @@ class Prebookorder extends StatelessWidget {
                                       : '';
                               final imgUrl = item['imgUrl']?.toString() ?? '';
 
-                              return Padding(
-                                padding: EdgeInsets.symmetric(vertical: 5.h),
+                              return Container(
+                                margin: EdgeInsets.symmetric(vertical: 6.h),
                                 child: Row(
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8.r),
                                       child: Container(
-                                        width: 70.w,
-                                        height: 70.w,
+                                        width: 65.w,
+                                        height: 65.w,
                                         color: Colors.grey.shade200,
                                         child:
                                             imgUrl.isNotEmpty
@@ -326,13 +441,12 @@ class Prebookorder extends StatelessWidget {
                                                   imageUrl: imgUrl,
                                                   fit: BoxFit.cover,
                                                   placeholder:
-                                                      (context, url) =>
-                                                          Container(
-                                                            color:
-                                                                Colors
-                                                                    .grey
-                                                                    .shade300,
-                                                          ),
+                                                      (_, __) => Container(
+                                                        color:
+                                                            Colors
+                                                                .grey
+                                                                .shade300,
+                                                      ),
                                                   errorWidget:
                                                       (
                                                         _,
@@ -358,14 +472,14 @@ class Prebookorder extends StatelessWidget {
                                             name,
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 15.sp,
+                                              fontSize: 14.sp,
                                             ),
                                           ),
                                           SizedBox(height: 4.h),
                                           Text(
                                             variantName.isNotEmpty
-                                                ? '$quantity x $variantName: $priceToShow BDT'
-                                                : '$quantity x $priceToShow BDT',
+                                                ? "$quantity × $variantName • $priceToShow BDT"
+                                                : "$quantity × $priceToShow BDT",
                                             style: TextStyle(
                                               fontSize: 12.sp,
                                               color: Colors.grey.shade700,
@@ -379,16 +493,21 @@ class Prebookorder extends StatelessWidget {
                               );
                             }),
 
-                            SizedBox(height: 6.h),
+                            SizedBox(height: 10.h),
+
+                            // ---------------- TOTAL -----------------
                             Text(
-                              'Total: $total BDT',
+                              "Total: $total BDT",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
+                                fontSize: 16.sp,
                                 color: themeColor,
-                                fontSize: 15.sp,
                               ),
                             ),
 
+                            SizedBox(height: 14.h),
+
+                            // ---------------- CANCEL BUTTON -----------------
                             if (status == 'pending')
                               SizedBox(
                                 width: double.infinity,
@@ -452,31 +571,34 @@ class Prebookorder extends StatelessWidget {
                                     size: 16,
                                   ),
                                   label: const Text(
-                                    'Cancel Order',
+                                    "Cancel Order",
                                     style: TextStyle(color: Colors.white),
                                   ),
                                 ),
                               ),
 
+                            SizedBox(height: 6.h),
+
+                            // ---------------- FEEDBACK -----------------
                             if (feedback.isNotEmpty)
-                              Padding(
-                                padding: EdgeInsets.only(top: 6.h),
-                                child: Text(
-                                  'Feedback: $feedback',
-                                  style: TextStyle(
-                                    fontStyle: FontStyle.italic,
-                                    fontSize: 12.sp,
-                                    color: Colors.grey.shade800,
-                                  ),
+                              Text(
+                                "Admin Feedback: $feedback",
+                                style: TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 13.sp,
+                                  color: Colors.grey.shade700,
                                 ),
                               ),
                           ],
                         ),
                       ),
                     ),
-                    SizedBox(height: 12.h),
+
+                    SizedBox(height: 20.h),
+
+                    // ---------------- ORDER MORE -----------------
                     SizedBox(
-                      width: 250.w,
+                      width: 260.w,
                       height: 50.h,
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
@@ -492,11 +614,12 @@ class Prebookorder extends StatelessWidget {
                           size: 16.sp,
                         ),
                         label: const Text(
-                          'Order More Food',
+                          "Order More Food",
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ),
+
                     SizedBox(height: 20.h),
                   ],
                 );

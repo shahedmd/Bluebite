@@ -207,230 +207,270 @@ class GetxCtrl extends GetxController {
   // ---------------------------------------------------------
   // ORDER CONFIRMATION
   // ---------------------------------------------------------
-  Future<void> confirmOrder(
-    String selectedTable,
-    String selectedOrderType,
-    BuildContext context,
-    DateTime? selectedDateTime, {
-    String? deliveryName,
-    String? deliveryPhone,
-    String? deliveryAddress,
-  }) async {
-    final firestore = FirebaseFirestore.instance;
+Future<void> confirmOrder(
+  String selectedTable,
+  String selectedOrderType,
+  BuildContext context,
+  DateTime? selectedDateTime, {
+  String? deliveryName,
+  String? deliveryPhone,
+  String? deliveryAddress,
+}) async {
+  final firestore = FirebaseFirestore.instance;
 
-    // Check if cart is empty
-    if (cartController.cartItems.isEmpty) {
-      Get.snackbar(
-        'Cart Empty',
-        'Please add items before confirming order',
-        backgroundColor: Colors.blue.shade200,
-        colorText: Colors.white,
-      );
-      return;
-    }
+  // Cart empty check
+  if (cartController.cartItems.isEmpty) {
+    Get.snackbar(
+      'Cart Empty',
+      'Please add items before confirming order.',
+      backgroundColor: Colors.blue.shade200,
+      colorText: Colors.white,
+    );
+    return;
+  }
 
-    // Prebooking MUST have a date/time
-    if (selectedOrderType == 'Prebooking' && selectedDateTime == null) {
-      Get.snackbar(
-        'Select Date & Time',
-        'Please choose date and time for your prebooking order',
-        backgroundColor: Colors.blue.shade200,
-        colorText: Colors.white,
-      );
-      return;
-    }
+  // Prebooking must have date/time
+  if (selectedOrderType == 'Prebooking' && selectedDateTime == null) {
+    Get.snackbar(
+      'Select Date & Time',
+      'Please choose date & time for your prebooking order',
+      backgroundColor: Colors.blue.shade200,
+      colorText: Colors.white,
+    );
+    return;
+  }
 
-    const slotDuration = Duration(hours: 2);
+  const slotDuration = Duration(hours: 2);
 
-    try {
-      // Show loading indicator
-      Get.dialog(
-        Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
+  try {
+    // Show loading dialog
+    Get.dialog(
+      const Center(child: CircularProgressIndicator()),
+      barrierDismissible: false,
+    );
 
-      // =============== PREBOOKING SLOT CHECK ===============
-      if (selectedOrderType == 'Prebooking') {
-        final newStart = selectedDateTime!;
-        final newEnd = newStart.add(slotDuration);
+    // ================== Prebooking slot check ==================
+    if (selectedOrderType == 'Prebooking') {
+      final newStart = selectedDateTime!;
+      final newEnd = newStart.add(slotDuration);
 
-        final existing =
-            await firestore
-                .collection('orders')
-                .where('tableNo', isEqualTo: selectedTable)
-                .where('orderType', isEqualTo: 'Prebooking')
-                .where('status', whereIn: ['pending', 'processing'])
-                .get();
+      final existingBookings = await firestore
+          .collection('orders')
+          .where('tableNo', isEqualTo: selectedTable)
+          .where('orderType', isEqualTo: 'Prebooking')
+          .where('status', whereIn: ['pending', 'processing'])
+          .get();
 
-        for (var doc in existing.docs) {
-          final data = doc.data();
-          final Timestamp? ts = data['prebookSlot'] as Timestamp?;
-          if (ts == null) continue;
+      for (var doc in existingBookings.docs) {
+        final data = doc.data();
+        final Timestamp? ts = data['prebookSlot'] as Timestamp?;
+        if (ts == null) continue;
 
-          final existingStart = ts.toDate();
-          final existingEnd = existingStart.add(slotDuration);
+        final existingStart = ts.toDate();
+        final existingEnd = existingStart.add(slotDuration);
 
-          final overlap =
-              newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart);
+        final overlap =
+            newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart);
 
-          if (overlap) {
-            Get.back(); // close loading
-            Get.snackbar(
-              'Slot Unavailable',
-              'Table already booked from '
-                  '${existingStart.hour}:${existingStart.minute.toString().padLeft(2, '0')} to '
-                  '${existingEnd.hour}:${existingEnd.minute.toString().padLeft(2, '0')}',
-              backgroundColor: Colors.red.shade300,
-              colorText: Colors.white,
-            );
-            return;
-          }
-        }
-      }
-
-      // =============== INHOUSE MERGE OR NEW ORDER ===============
-      if (selectedOrderType == 'Inhouse') {
-        final activeOrders =
-            await firestore
-                .collection('orders')
-                .where('tableNo', isEqualTo: selectedTable)
-                .where('orderType', isEqualTo: 'Inhouse')
-                .where('status', whereIn: ['pending', 'processing'])
-                .orderBy('timestamp', descending: true)
-                .limit(1)
-                .get();
-
-        if (activeOrders.docs.isNotEmpty) {
-          final doc = activeOrders.docs.first;
-
-          final items = List<Map<String, dynamic>>.from(doc['items']);
-          for (var cartItem in cartController.cartItems) {
-            final index = items.indexWhere((e) => e['name'] == cartItem.name);
-            if (index != -1) {
-              items[index]['quantity'] += cartItem.quantity;
-            } else {
-              items.add(cartItem.toMap());
-            }
-          }
-
-          await firestore.collection('orders').doc(doc.id).update({
-            'items': items,
-            'total': items.fold<double>(0.0, (sum, e) {
-              return sum + (e['price'] * e['quantity']);
-            }),
-          });
-
-          cartController.clearCart();
-          Get.back(); // close loading
-
+        if (overlap) {
+          Get.back();
           Get.snackbar(
-            'Success',
-            'Order Updated',
-            backgroundColor: Colors.blue.shade200,
+            'Slot Unavailable',
+            'This table is already booked from '
+            '${existingStart.hour}:${existingStart.minute.toString().padLeft(2, '0')} '
+            'to ${existingEnd.hour}:${existingEnd.minute.toString().padLeft(2, '0')}.',
+            backgroundColor: Colors.red.shade400,
             colorText: Colors.white,
-          );
-
-          final isMobile = MediaQuery.of(context).size.width < 650;
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (_) =>
-                      isMobile
-                          ? LiveOrderPage(
-                            tableNo: selectedTable,
-                            selectedtype: 'Inhouse',
-                          )
-                          : LiveOrderPageWeb(
-                            tableNo: selectedTable,
-                            selectedtype: 'Inhouse',
-                          ),
-            ),
           );
           return;
         }
       }
-
-      // =============== CREATE NEW ORDER ===============
-      final orderData = {
-        'tableNo': selectedTable,
-        'orderType': selectedOrderType,
-        'status': 'pending',
-        'items': cartController.cartItems.map((e) => e.toMap()).toList(),
-        'total': cartController.totalPrice,
-        'timestamp': FieldValue.serverTimestamp(),
-        'prebookSlot':
-            selectedOrderType == 'Prebooking'
-                ? Timestamp.fromDate(selectedDateTime!)
-                : null,
-        'adminFeedback': '',
-        'name': deliveryName,
-        'phone': deliveryPhone,
-        'address': deliveryAddress,
-      };
-
-      await firestore.collection('orders').add(orderData);
-      cartController.clearCart();
-      Get.back(); // close loading
-
-      Get.snackbar(
-        'Success',
-        'Order Placed Successfully',
-        backgroundColor: Colors.blue.shade200,
-        colorText: Colors.white,
-      );
-
-      // Redirect to appropriate live/prebooking page
-      final isMobile = MediaQuery.of(context).size.width < 650;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) {
-            if (selectedOrderType == 'Prebooking') {
-              return isMobile
-                  ? Prebookorder(
-                    tableNo: selectedTable,
-                    selectedtype: 'Prebooking',
-                    timeslot: selectedDateTime!,
-                  )
-                  : PrebookOrderWeb(
-                    tableNo: selectedTable,
-                    selectedtype: 'Prebooking',
-                    timeslot: selectedDateTime!,
-                  );
-            }
-            if (selectedOrderType == 'Home Delivery') {
-              return isMobile? Homedelivermobile(
-                customerName: deliveryName,
-                customerPhone: deliveryPhone,
-                selectedtype: "Home Delivery",
-              ) : DeliveryOrderWeb(
-                customerName: deliveryName,
-                customerPhone: deliveryPhone,
-                selectedtype: "Home Delivery",
-              );
-            } else {
-              return isMobile
-                  ? LiveOrderPage(
-                    tableNo: selectedTable,
-                    selectedtype: 'Inhouse',
-                  )
-                  : LiveOrderPageWeb(
-                    tableNo: selectedTable,
-                    selectedtype: 'Inhouse',
-                  );
-            }
-          },
-        ),
-      );
-    } catch (e) {
-      Get.back(); // close loading in case of error
-      Get.snackbar(
-        'Error',
-        e.toString(),
-        backgroundColor: Colors.red.shade300,
-        colorText: Colors.white,
-      );
     }
+
+    // ================== Inhouse merge logic ==================
+    if (selectedOrderType == 'Inhouse') {
+      final activeOrders = await firestore
+          .collection('orders')
+          .where('tableNo', isEqualTo: selectedTable)
+          .where('orderType', isEqualTo: 'Inhouse')
+          .where('status', whereIn: ['pending', 'processing'])
+          .orderBy('timestamp', descending: true)
+          .limit(1)
+          .get();
+
+      if (activeOrders.docs.isNotEmpty) {
+        final doc = activeOrders.docs.first;
+        final List<Map<String, dynamic>> existingItems =
+            List<Map<String, dynamic>>.from(doc['items']);
+
+        // Merge cart items safely
+        for (var cartItem in cartController.cartItems) {
+          final index = existingItems.indexWhere((e) {
+            return e['name'] == cartItem.name &&
+                e['selectedVariant']?['size'] ==
+                    cartItem.selectedVariant?.size;
+          });
+
+          if (index != -1) {
+            // Merge quantity safely
+            existingItems[index]['quantity'] =
+                (existingItems[index]['quantity'] ?? 0) + cartItem.quantity;
+
+            // Update price correctly considering variant
+            existingItems[index]['price'] = cartItem.selectedVariant != null
+                ? (cartItem.selectedVariant?.price ?? 0.0)
+                : (cartItem.price ?? 0.0);
+          } else {
+            // Add new cart item safely
+            final map = cartItem.toMap();
+            map['quantity'] = map['quantity'] ?? 1;
+            map['price'] = cartItem.selectedVariant != null
+                ? (cartItem.selectedVariant?.price ?? 0.0)
+                : (cartItem.price ?? 0.0);
+            existingItems.add(map);
+          }
+        }
+
+        // Update total safely
+        final double total = existingItems.fold<double>(0.0, (sum, e) {
+          final price = (e['price'] ?? 0).toDouble();
+          final qty = (e['quantity'] ?? 0).toInt();
+          return sum + (price * qty);
+        });
+
+        await firestore.collection('orders').doc(doc.id).update({
+          'items': existingItems,
+          'total': total,
+        });
+
+        cartController.clearCart();
+        Get.back();
+
+        Get.snackbar(
+          'Success',
+          'Order Updated (Merged with existing order)',
+          backgroundColor: Colors.blue.shade200,
+          colorText: Colors.white,
+        );
+
+        final isMobile = MediaQuery.of(context).size.width < 650;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => isMobile
+                ? LiveOrderPage(
+                    tableNo: selectedTable,
+                    selectedtype: 'Inhouse',
+                  )
+                : LiveOrderPageWeb(
+                    tableNo: selectedTable,
+                    selectedtype: 'Inhouse',
+                  ),
+          ),
+        );
+
+        return;
+      }
+    }
+
+    // ================== Create new order ==================
+    final orderData = {
+      'tableNo': selectedTable,
+      'orderType': selectedOrderType,
+      'status': 'pending',
+      'items': cartController.cartItems.map((e) {
+        final map = e.toMap();
+        map['quantity'] = map['quantity'] ?? 1;
+        map['price'] = e.selectedVariant != null
+            ? (e.selectedVariant?.price ?? 0.0)
+            : (e.price ?? 0.0);
+        return map;
+      }).toList(),
+      'total': cartController.cartItems.fold<double>(0.0, (sum, e) {
+        final double price = e.selectedVariant != null
+            ? (e.selectedVariant?.price ?? 0.0)
+            : (e.price ?? 0.0);
+        final int qty = e.quantity;
+        return sum + (price * qty);
+      }),
+      'timestamp': FieldValue.serverTimestamp(),
+      'prebookSlot': selectedOrderType == 'Prebooking'
+          ? Timestamp.fromDate(selectedDateTime!)
+          : null,
+      'name': deliveryName,
+      'phone': deliveryPhone,
+      'address': deliveryAddress,
+      'adminFeedback': '',
+    };
+
+    await firestore.collection('orders').add(orderData);
+    cartController.clearCart();
+    Get.back();
+
+    Get.snackbar(
+      'Success',
+      'Order Placed Successfully',
+      backgroundColor: Colors.blue.shade200,
+      colorText: Colors.white,
+    );
+
+    final isMobile = MediaQuery.of(context).size.width < 650;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) {
+          if (selectedOrderType == 'Prebooking') {
+            return isMobile
+                ? Prebookorder(
+                    tableNo: selectedTable,
+                    selectedtype: 'Prebooking',
+                    timeslot: selectedDateTime!,
+                  )
+                : PrebookOrderWeb(
+                    tableNo: selectedTable,
+                    selectedtype: 'Prebooking',
+                    timeslot: selectedDateTime!,
+                  );
+          }
+
+          if (selectedOrderType == 'Home Delivery') {
+            return isMobile
+                ? Homedelivermobile(
+                    customerName: deliveryName,
+                    customerPhone: deliveryPhone,
+                    selectedtype: 'Home Delivery',
+                  )
+                : DeliveryOrderWeb(
+                    customerName: deliveryName,
+                    customerPhone: deliveryPhone,
+                    selectedtype: 'Home Delivery',
+                  );
+          }
+
+          return isMobile
+              ? LiveOrderPage(
+                  tableNo: selectedTable,
+                  selectedtype: 'Inhouse',
+                )
+              : LiveOrderPageWeb(
+                  tableNo: selectedTable,
+                  selectedtype: 'Inhouse',
+                );
+        },
+      ),
+    );
+  } catch (e) {
+    Get.back();
+    Get.snackbar(
+      'Error',
+      e.toString(),
+      backgroundColor: Colors.red.shade300,
+      colorText: Colors.white,
+    );
   }
+}
+
+
+
 }
