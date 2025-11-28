@@ -12,7 +12,7 @@ class FreshMobile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(appBar: AppBar(
       backgroundColor: Colors.blue.shade800,
-      title: Text("Your is cancelled"),
+      title: Text("Your order is cancelled"),
     ), 
     drawer: customDrawer(context),
     body: Column(children: [

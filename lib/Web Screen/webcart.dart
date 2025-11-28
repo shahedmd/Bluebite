@@ -7,7 +7,6 @@ import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-
 import '../bottomnav.dart';
 import '../cartcontroller.dart';
 import '../firebasequery.dart';
@@ -36,6 +35,11 @@ class CartPageWeb extends StatelessWidget {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
 
+  // Payment accounts
+  final String bkashNumber = "01XXXXXXXXX";
+  final String nagadNumber = "01XXXXXXXXX";
+  final String bankDetails = "Bank Name: ABC Bank\nAccount: 1234567890";
+
   final themeColor = Colors.blue.shade800;
   final DateFormat dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
@@ -47,7 +51,6 @@ class CartPageWeb extends StatelessWidget {
           children: [
             CustomNavbar(),
             SizedBox(height: 50.h),
-
             /// ----------------- Table & Order Type Selection -----------------
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
@@ -82,7 +85,6 @@ class CartPageWeb extends StatelessWidget {
                         },
                       ),
                       SizedBox(width: 20.w),
-
                       // Home Delivery toggle
                       if (selectedOrderType.value == 'Home Delivery')
                         Row(
@@ -97,7 +99,6 @@ class CartPageWeb extends StatelessWidget {
                           ],
                         ),
                       SizedBox(width: 20.w),
-
                       // Table Dropdown
                       if ((selectedOrderType.value != 'Home Delivery') ||
                           (selectedOrderType.value == 'Home Delivery' &&
@@ -112,7 +113,6 @@ class CartPageWeb extends StatelessWidget {
                               .toList(),
                           onChanged: (val) => selectedTable.value = val!,
                         ),
-
                       // Prebooking selected datetime
                       if (selectedOrderType.value == 'Prebooking' &&
                           selectedDateTime.value != null)
@@ -148,9 +148,7 @@ class CartPageWeb extends StatelessWidget {
                 ),
               ),
             ),
-
             SizedBox(height: 24.h),
-
             /// ----------------- Cart Items & Total -----------------
             centeredContent(
               child: Obx(
@@ -172,7 +170,6 @@ class CartPageWeb extends StatelessWidget {
                             ),
                           ),
                           SizedBox(height: 16.h),
-
                           if (cartController.cartItems.isEmpty)
                             Center(
                               child: Text(
@@ -184,7 +181,6 @@ class CartPageWeb extends StatelessWidget {
                                 ),
                               ),
                             ),
-
                           ...cartController.cartItems.map((item) {
                             final hasVariant = item.selectedVariant != null;
                             final unitPrice =
@@ -298,9 +294,7 @@ class CartPageWeb extends StatelessWidget {
                         ],
                       ),
                     ),
-
                     SizedBox(width: 30.w),
-
                     /// Total + Confirm Order
                     Expanded(
                       flex: 1,
@@ -355,11 +349,14 @@ class CartPageWeb extends StatelessWidget {
                                       selectedOrderType.value == 'Prebooking') {
                                     delivery = await _showDeliveryDialog(context);
                                     if (delivery == null) return;
-
                                     deliveryName.value = delivery['name']!;
                                     deliveryPhone.value = delivery['phone']!;
                                     deliveryAddress.value = delivery['address']!;
                                   }
+
+                                  // ----- PAYMENT -----
+                                  final paymentData = await _showPaymentBottomSheet(context);
+                                  if (paymentData == null) return; // Cancelled
 
                                   DateTime? finalDateTime = selectedDateTime.value;
 
@@ -377,6 +374,8 @@ class CartPageWeb extends StatelessWidget {
                                     deliveryAddress: deliveryAddress.value.isEmpty
                                         ? null
                                         : deliveryAddress.value,
+                                    paymentMethod: paymentData['method'],
+                                    transactionId: paymentData['transactionId'],
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
@@ -410,7 +409,6 @@ class CartPageWeb extends StatelessWidget {
                 ),
               ),
             ),
-
             SizedBox(height: 400.h),
             BlueBiteBottomNavbar(),
           ],
@@ -511,5 +509,117 @@ class CartPageWeb extends StatelessWidget {
         },
       ),
     );
+  }
+
+  /// ----------------- PAYMENT BOTTOM SHEET -----------------
+  Future<Map<String, String>?> _showPaymentBottomSheet(BuildContext context) async {
+    final transactionCtrl = TextEditingController();
+    final RxString selectedMethod = 'Cash'.obs;
+
+    final result = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setState) {
+          return Padding(
+            padding: EdgeInsets.all(16.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Select Payment Method", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp)),
+                SizedBox(height: 12.h),
+                Wrap(
+                  spacing: 12.w,
+                  children: ['Cash', 'Bkash', 'Nagad', 'Bank'].map((method) {
+                    return ChoiceChip(
+                      label: Text(method),
+                      selected: selectedMethod.value == method,
+                      onSelected: (_) {
+                        setState(() {
+                          selectedMethod.value = method;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 12.h),
+                if (selectedMethod.value == 'Bkash' || selectedMethod.value == 'Nagad' || selectedMethod.value == 'Bank')
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          FaIcon(
+                            selectedMethod.value == 'Bkash'
+                                ? FontAwesomeIcons.b
+                                : selectedMethod.value == 'Nagad'
+                                    ? FontAwesomeIcons.moneyBillWave
+                                    : FontAwesomeIcons.building,
+                            color: Colors.blue,
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            selectedMethod.value == 'Bkash'
+                                ? "Send money to: $bkashNumber"
+                                : selectedMethod.value == 'Nagad'
+                                    ? "Send money to: $nagadNumber"
+                                    : "Bank Details:\n$bankDetails",
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        "After sending money, enter your ${selectedMethod.value} transaction ID / number below:",
+                        style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        controller: transactionCtrl,
+                        decoration: InputDecoration(
+                          labelText: '${selectedMethod.value} Transaction ID',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.text,
+                      ),
+                    ],
+                  ),
+                SizedBox(height: 16.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, null),
+                      child: const Text('Cancel'),
+                    ),
+                    SizedBox(width: 12.w),
+                    ElevatedButton(
+                      onPressed: () {
+                        if ((selectedMethod.value == 'Bkash' || selectedMethod.value == 'Nagad' || selectedMethod.value == 'Bank') &&
+                            transactionCtrl.text.trim().isEmpty) {
+                          Get.snackbar(
+                            'Transaction ID Required',
+                            'Please enter your transaction number',
+                            backgroundColor: Colors.red.shade200,
+                          );
+                          return;
+                        }
+                        Navigator.pop(context, {
+                          'method': selectedMethod.value,
+                          'transactionId': transactionCtrl.text.trim(),
+                        });
+                      },
+                      child: const Text('Submit'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+    return result;
   }
 }

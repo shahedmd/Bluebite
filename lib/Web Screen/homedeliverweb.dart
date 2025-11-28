@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, avoid_types_as_parameter_names
+// ignore_for_file: deprecated_member_use, avoid_types_as_parameter_names, use_build_context_synchronously
 
 import 'package:bluebite/Web%20Screen/responsiveappbar.dart';
 import 'package:bluebite/Web%20Screen/webcart.dart';

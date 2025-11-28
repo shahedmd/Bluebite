@@ -22,6 +22,11 @@ class CartPageMobile extends StatelessWidget {
   final Rxn<DateTime> selectedDateTime = Rxn<DateTime>();
   final RxBool fromHome = false.obs; // Toggle for Home Delivery
 
+  // Your payment accounts
+  final String bkashNumber = "01XXXXXXXXX";
+  final String nagadNumber = "01XXXXXXXXX";
+  final String bankDetails = "Bank Name: ABC Bank\nAccount: 1234567890";
+
   @override
   Widget build(BuildContext context) {
     final themeColor = Colors.blue.shade800;
@@ -33,6 +38,10 @@ class CartPageMobile extends StatelessWidget {
         height: 56.h,
         child: FloatingActionButton.extended(
           onPressed: () async {
+            // 1️⃣ Show payment bottom sheet first
+            final paymentData = await _showPaymentBottomSheet(context);
+            if (paymentData == null) return; // User cancelled
+
             String? tableNoToSend = selectedTable.value;
             if (selectedOrderType.value == 'Home Delivery' && fromHome.value) {
               tableNoToSend = null; // From Home, no table
@@ -40,7 +49,8 @@ class CartPageMobile extends StatelessWidget {
 
             // Delivery info
             Map<String, String>? delivery;
-            if (selectedOrderType.value == 'Home Delivery' || selectedOrderType.value == 'Prebooking') {
+            if (selectedOrderType.value == 'Home Delivery' ||
+                selectedOrderType.value == 'Prebooking') {
               delivery = await _showDeliveryDialog(context);
               if (delivery == null) return;
             }
@@ -64,6 +74,8 @@ class CartPageMobile extends StatelessWidget {
               deliveryName: delivery?['name'],
               deliveryPhone: delivery?['phone'],
               deliveryAddress: delivery?['address'],
+              paymentMethod: paymentData['method'],
+              transactionId: paymentData['transactionId'],
             );
           },
           backgroundColor: themeColor,
@@ -134,7 +146,6 @@ class CartPageMobile extends StatelessWidget {
                                   selectedDateTime.value = null;
                                 }
 
-                                // Reset Home Delivery toggle when not selected
                                 if (val != 'Home Delivery') fromHome.value = false;
                               },
                             ),
@@ -432,6 +443,120 @@ class CartPageMobile extends StatelessWidget {
                 child: const Text('Submit'),
               ),
             ],
+          );
+        });
+      },
+    );
+
+    return result;
+  }
+
+  // -------- HELPER: SHOW PAYMENT BOTTOM SHEET --------
+  Future<Map<String, String>?> _showPaymentBottomSheet(BuildContext context) async {
+    final transactionCtrl = TextEditingController();
+    final RxString selectedMethod = 'Cash'.obs;
+
+    final result = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setState) {
+          return Padding(
+            padding: EdgeInsets.all(16.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Select Payment Method", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp)),
+                SizedBox(height: 12.h),
+                Wrap(
+                  spacing: 12.w,
+                  children: ['Cash', 'Bkash', 'Nagad', 'Bank'].map((method) {
+                    return ChoiceChip(
+                      label: Text(method),
+                      selected: selectedMethod.value == method,
+                      onSelected: (_) {
+                        setState(() {
+                          selectedMethod.value = method;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 12.h),
+                if (selectedMethod.value == 'Bkash' || selectedMethod.value == 'Nagad' || selectedMethod.value == 'Bank')
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          FaIcon(
+                            selectedMethod.value == 'Bkash'
+                                ? FontAwesomeIcons.b
+                                : selectedMethod.value == 'Nagad'
+                                    ? FontAwesomeIcons.moneyBillWave
+                                    : FontAwesomeIcons.building,
+                            color: Colors.blue,
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            selectedMethod.value == 'Bkash'
+                                ? "Send money to: $bkashNumber"
+                                : selectedMethod.value == 'Nagad'
+                                    ? "Send money to: $nagadNumber"
+                                    : "Bank Details:\n$bankDetails",
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        "After sending money, enter your ${selectedMethod.value} transaction ID / number below:",
+                        style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        controller: transactionCtrl,
+                        decoration: InputDecoration(
+                          labelText: '${selectedMethod.value} Transaction ID',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.text,
+                      ),
+                    ],
+                  ),
+                SizedBox(height: 16.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, null),
+                      child: const Text('Cancel'),
+                    ),
+                    SizedBox(width: 12.w),
+                    ElevatedButton(
+                      onPressed: () {
+                        if ((selectedMethod.value == 'Bkash' || selectedMethod.value == 'Nagad' || selectedMethod.value == 'Bank') &&
+                            transactionCtrl.text.trim().isEmpty) {
+                          Get.snackbar(
+                            'Transaction ID Required',
+                            'Please enter your transaction number',
+                            backgroundColor: Colors.red.shade400,
+                            colorText: Colors.white,
+                          );
+                          return;
+                        }
+                        Navigator.pop(context, {
+                          'method': selectedMethod.value,
+                          'transactionId': transactionCtrl.text.trim(),
+                        });
+                      },
+                      child: const Text('Confirm'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           );
         });
       },

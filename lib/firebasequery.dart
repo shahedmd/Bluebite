@@ -215,6 +215,8 @@ Future<void> confirmOrder(
   String? deliveryName,
   String? deliveryPhone,
   String? deliveryAddress,
+  String? paymentMethod,    // <-- added
+  String? transactionId,    // <-- added
 }) async {
   final firestore = FirebaseFirestore.instance;
 
@@ -341,6 +343,8 @@ Future<void> confirmOrder(
         await firestore.collection('orders').doc(doc.id).update({
           'items': existingItems,
           'total': total,
+          'paymentMethod': paymentMethod ?? 'Cash',   // <-- added
+          'transactionId': transactionId,             // <-- added
         });
 
         cartController.clearCart();
@@ -400,6 +404,8 @@ Future<void> confirmOrder(
       'name': deliveryName,
       'phone': deliveryPhone,
       'address': deliveryAddress,
+      'paymentMethod': paymentMethod ?? 'Cash',  // <-- added
+      'transactionId': transactionId,            // <-- added
       'adminFeedback': '',
     };
 
@@ -470,6 +476,7 @@ Future<void> confirmOrder(
     );
   }
 }
+
 
 
 
