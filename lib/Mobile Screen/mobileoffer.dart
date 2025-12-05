@@ -9,7 +9,6 @@ import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-
 import '../globalvar.dart';
 import 'mobilecart.dart';
 

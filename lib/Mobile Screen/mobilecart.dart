@@ -23,9 +23,9 @@ class CartPageMobile extends StatelessWidget {
   final RxBool fromHome = false.obs; // Toggle for Home Delivery
 
   // Your payment accounts
-  final String bkashNumber = "01XXXXXXXXX";
-  final String nagadNumber = "01XXXXXXXXX";
-  final String bankDetails = "Bank Name: ABC Bank\nAccount: 1234567890";
+  final String bkashNumber = "01727530313";
+  final String nagadNumber = "01727530313";
+  final String bankDetails = "Bank Name: ABC Bank\nAccount: ";
 
   @override
   Widget build(BuildContext context) {

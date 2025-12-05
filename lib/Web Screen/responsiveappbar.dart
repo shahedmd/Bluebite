@@ -8,7 +8,6 @@ import 'homedeliverweb.dart';
 import 'liveorder.dart';
 import 'offerpage.dart';
 import 'preebooked.dart';
-import 'review.dart';
 import 'webcart.dart';
 import 'webhomepage.dart';
 
@@ -107,11 +106,7 @@ class CustomNavbar extends StatelessWidget {
                       Icons.local_offer_outlined,
                       () => Get.to(() => const OfferPageWeb()),
                     ),
-                    _navItem(
-                      "Reviews",
-                      Icons.reviews,
-                      () => Get.to(() => const CustomerReviewWeb()),
-                    ),
+                    
                   ],
                 ),
               ],

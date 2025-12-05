@@ -3,7 +3,6 @@ import 'package:bluebite/Mobile%20Screen/mobilecart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-
 import '../bottomnav.dart';
 
 class MobileHomepage extends StatefulWidget {

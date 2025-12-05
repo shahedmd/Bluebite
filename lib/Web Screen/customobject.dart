@@ -5,7 +5,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-
+import '../Mobile Custom Object/customwidget.dart';
 import '../cartcontroller.dart';
 import '../firebasequery.dart';
 import '../menuitems.dart';
@@ -54,15 +54,15 @@ Widget webCustomSlide() {
                 width: double.infinity,
                 margin: EdgeInsets.symmetric(horizontal: 10.w),
                 decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16.r),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 8.r,
-                  offset: Offset(0, 4.h),
+                  borderRadius: BorderRadius.circular(16.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8.r,
+                      offset: Offset(0, 4.h),
+                    ),
+                  ],
                 ),
-              ],
-            ),
                 child: CachedNetworkImage(
                   imageUrl: controller.imageurls[index],
                   fit: BoxFit.cover,
@@ -275,10 +275,21 @@ Widget tabScreenWeb() {
                                 ),
                                 child:
                                     imageUrl.isNotEmpty
-                                        ? Image.network(
-                                          imageUrl,
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
+                                        ? GestureDetector(
+                                          onTap:
+                                              () => showDialog(
+                                                context: context,
+                                                barrierDismissible: true,
+                                                builder:
+                                                    (_) => FullScreenImageView(
+                                                      imageUrl: imageUrl,
+                                                    ),
+                                              ),
+                                          child: Image.network(
+                                            imageUrl,
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                          ),
                                         )
                                         : Container(
                                           color: Colors.grey[300],

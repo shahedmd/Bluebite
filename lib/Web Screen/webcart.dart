@@ -36,9 +36,9 @@ class CartPageWeb extends StatelessWidget {
   final TextEditingController addressController = TextEditingController();
 
   // Payment accounts
-  final String bkashNumber = "01XXXXXXXXX";
-  final String nagadNumber = "01XXXXXXXXX";
-  final String bankDetails = "Bank Name: ABC Bank\nAccount: 1234567890";
+  final String bkashNumber = "01727530313";
+  final String nagadNumber = "01727530313";
+  final String bankDetails = "Bank Name: ABC Bank\nAccount:";
 
   final themeColor = Colors.blue.shade800;
   final DateFormat dateFormat = DateFormat('dd MMM yyyy, hh:mm a');

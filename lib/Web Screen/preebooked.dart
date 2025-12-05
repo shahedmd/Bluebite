@@ -11,7 +11,6 @@ import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-
 import '../firebasequery.dart';
 import 'customobject.dart';
 import 'responsiveappbar.dart';
@@ -87,11 +86,7 @@ class PrebookOrderWeb extends StatelessWidget {
 
                     final docs = snapshot.data!.docs;
 
-                    // Find the most relevant order per mobile logic:
-                    // 1) look for the newest order whose prebookSlot overlaps with requested timeslot
-                    // 2) if found and not delivered -> show it
-                    // 3) if found and delivered -> show 'no orders'
-                    // 4) if none found, check the most recent order overall; if it's cancelled -> show it (like mobile)
+                    
                     Map<String, dynamic>? displayData;
                     String displayOrderId = '';
 

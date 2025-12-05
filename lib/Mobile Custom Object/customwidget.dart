@@ -5,7 +5,6 @@ import 'package:bluebite/Mobile%20Screen/liveorder.dart';
 import 'package:bluebite/Mobile%20Screen/mobilehomepage.dart';
 import 'package:bluebite/Mobile%20Screen/mobileoffer.dart';
 import 'package:bluebite/Mobile%20Screen/prebookorder.dart';
-import 'package:bluebite/Mobile%20Screen/review.dart';
 import 'package:bluebite/cartcontroller.dart';
 import 'package:bluebite/firebasequery.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -14,13 +13,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
-
 import '../Mobile Screen/mobilecart.dart';
 import '../menuitems.dart';
 
 class DrawerControllerX extends GetxController {
-  var selectedTable = RxnString(); // nullable reactive string
-  var selectedSlot = Rxn<DateTime>(); // nullable reactive DateTime
+  var selectedTable = RxnString();
+  var selectedSlot = Rxn<DateTime>();
 }
 
 GetxCtrl controller = Get.put(GetxCtrl());
@@ -120,89 +118,87 @@ Widget customDrawer(BuildContext context) {
   }
 
   Future<void> showCustomerInfoDialog() async {
-  final TextEditingController nameCtrl = TextEditingController();
-  final TextEditingController phoneNumber = TextEditingController();
+    final TextEditingController nameCtrl = TextEditingController();
+    final TextEditingController phoneNumber = TextEditingController();
 
-  await Get.dialog(
-    AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      title: Text(
-        "Customer Information",
-        style: TextStyle(fontWeight: FontWeight.bold, color: primaryBlue),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: nameCtrl,
-            decoration: InputDecoration(
-              labelText: "Customer Name",
-              filled: true,
-              fillColor: Colors.grey[100],
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
+    await Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        title: Text(
+          "Customer Information",
+          style: TextStyle(fontWeight: FontWeight.bold, color: primaryBlue),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: InputDecoration(
+                labelText: "Customer Name",
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
               ),
             ),
+            SizedBox(height: 12.h),
+            TextField(
+              controller: phoneNumber,
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: "Customer Phone",
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
-          SizedBox(height: 12.h),
-          TextField(
-            controller: phoneNumber,
-            maxLines: 2,
-            decoration: InputDecoration(
-              labelText: "Customer Phone",
-              filled: true,
-              fillColor: Colors.grey[100],
-              border: OutlineInputBorder(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryBlue,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.r),
               ),
             ),
+            onPressed: () {
+              if (nameCtrl.text.isNotEmpty && phoneNumber.text.isNotEmpty) {
+                Get.back();
+
+                // Navigate or process data
+                Get.to(
+                  () => Homedelivermobile(
+                    customerName: nameCtrl.text.trim(),
+                    customerPhone: phoneNumber.text.trim(),
+                    selectedtype: "Home Delivery",
+                  ),
+                  preventDuplicates: false,
+                );
+              } else {
+                Get.snackbar(
+                  'Missing Info',
+                  'Please enter all details',
+                  backgroundColor: Colors.red.shade300,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            child: const Text("OK", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Get.back(),
-          child:
-              const Text("Cancel", style: TextStyle(color: Colors.grey)),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: primaryBlue,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-          ),
-          onPressed: () {
-            if (nameCtrl.text.isNotEmpty && phoneNumber.text.isNotEmpty) {
-              Get.back();
-
-              // Navigate or process data
-              Get.to(
-                () => Homedelivermobile(
-                  customerName: nameCtrl.text.trim(),
-                  customerPhone: phoneNumber.text.trim(),
-                  selectedtype: "Home Delivery",
-                ),
-                preventDuplicates: false,
-              );
-            } else {
-              Get.snackbar(
-                'Missing Info',
-                'Please enter all details',
-                backgroundColor: Colors.red.shade300,
-                colorText: Colors.white,
-              );
-            }
-          },
-          child: const Text("OK", style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    ),
-  );
-}
-
+    );
+  }
 
   Future<void> showPrebookDialog() async {
     drawerCtrl.selectedTable.value = null;
@@ -401,11 +397,6 @@ Widget customDrawer(BuildContext context) {
                 title: "Offers",
                 onTap: () => Get.to(() => MobileOfferpage()),
               ),
-              drawerItem(
-                icon: FontAwesomeIcons.star,
-                title: "Reviews",
-                onTap: () => Get.to(() => CustomerReview()),
-              ),
 
               const Spacer(),
 
@@ -490,7 +481,7 @@ PreferredSizeWidget customAppBar(BuildContext context) {
                 controller.searchQuery.value = value;
                 controller.searchProducts(value);
               },
-              
+
               decoration: InputDecoration(
                 hintText: "Search...",
                 hintStyle: TextStyle(fontSize: 16.sp),
@@ -561,11 +552,23 @@ Widget customSlide(double fraction, double slideheight) {
               imageUrl: controller.imageurls[index],
               fit: BoxFit.cover,
               placeholder:
-                  (context, url) => Center(child: CircularProgressIndicator()),
+                  (context, url) => Center(
+                    child: SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
               errorWidget:
                   (context, url, error) =>
                       Center(child: Icon(Icons.error, color: Colors.red)),
               fadeInDuration: Duration(milliseconds: 300),
+
+              // ADD THESE LINES TO REDUCE MEMORY USAGE
+              memCacheWidth: 300, // resize image in memory
+              memCacheHeight: 200, // resize image in memory
+              maxWidthDiskCache: 600, // limit cache size
+              maxHeightDiskCache: 400,
             ),
           ),
         );
@@ -609,59 +612,59 @@ Widget customDot() {
 
 Widget tabItems() {
   return Obx(() {
-    return Wrap(
-      spacing: 10.w,
-      runSpacing: 10.h,
-      children: List.generate(controller.tabs.length, (index) {
-        final categoryName = controller.tabs[index];
-        final bool isSelected =
-            controller.searchQuery.value.isEmpty &&
-            controller.tabindex.value == index;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 10.0.w),
+      child: Wrap(
+        alignment: WrapAlignment.center, // <-- Centers horizontally
+        runAlignment: WrapAlignment.center, // <-- Centers each wrap line
+        spacing: 10.w,
+        runSpacing: 10.h,
+        children: List.generate(controller.tabs.length, (index) {
+          final categoryName = controller.tabs[index];
+          final bool isSelected =
+              controller.searchQuery.value.isEmpty &&
+              controller.tabindex.value == index;
 
-        return GestureDetector(
-          onTap: () {
-            // Clear search when switching tabs
-            controller.searchCtrl.clear();
-            controller.searchQuery.value = "";
-
-            controller.selectedCategory.value = categoryName;
-            controller.fetchMenuItems(categoryName);
-            controller.tabindex.value = index;
-          },
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: AnimatedContainer(
-              duration: Duration(milliseconds: 250),
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                color:
-                    isSelected
-                        ? Color(0xFF1976D2) // primary blue
-                        : Color(0xFFBBDEFB), // light blue for unselected
-                borderRadius: BorderRadius.circular(25.r),
-                boxShadow:
-                    isSelected
-                        ? [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 5.r,
-                            offset: Offset(0, 3.h),
-                          ),
-                        ]
-                        : null,
-              ),
-              child: Text(
-                categoryName,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Color(0xFF0D47A1),
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
+          return GestureDetector(
+            onTap: () {
+              controller.searchCtrl.clear();
+              controller.searchQuery.value = "";
+              controller.selectedCategory.value = categoryName;
+              controller.fetchMenuItems(categoryName);
+              controller.tabindex.value = index;
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 250),
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                decoration: BoxDecoration(
+                  color: isSelected ? Color(0xFF1976D2) : Color(0xFFBBDEFB),
+                  borderRadius: BorderRadius.circular(25.r),
+                  boxShadow:
+                      isSelected
+                          ? [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 5.r,
+                              offset: Offset(0, 3.h),
+                            ),
+                          ]
+                          : null,
+                ),
+                child: Text(
+                  categoryName,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Color(0xFF0D47A1),
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   });
 }
@@ -722,23 +725,49 @@ Widget tabScreen() {
                             imageUrl.isNotEmpty
                                 ? SizedBox(
                                   height: 150.h,
-                                  child: CachedNetworkImage(
-                                    imageUrl: imageUrl,
-                                    fit: BoxFit.cover,
-                                    placeholder:
-                                        (context, url) => Center(
-                                          child: CircularProgressIndicator(
-                                            color: Colors.blue.shade200,
-                                          ),
+                                  child: GestureDetector(
+                                    onTap:
+                                        () => showDialog(
+                                          context: context,
+                                          barrierDismissible: true,
+                                          builder:
+                                              (_) => FullScreenImageView(
+                                                imageUrl: imageUrl,
+                                              ),
                                         ),
-                                    errorWidget:
-                                        (context, url, error) => Center(
-                                          child: Icon(
-                                            Icons.broken_image,
-                                            size: 40.sp,
-                                            color: Colors.red,
+                                    child: CachedNetworkImage(
+                                      imageUrl: imageUrl,
+                                      fit: BoxFit.cover,
+                                      placeholder:
+                                          (context, url) => Center(
+                                            child: SizedBox(
+                                              width: 30,
+                                              height: 30,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                      errorWidget:
+                                          (context, url, error) => Center(
+                                            child: Icon(
+                                              Icons.error,
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                      fadeInDuration: Duration(
+                                        milliseconds: 300,
+                                      ),
+
+                                      // ADD THESE LINES TO REDUCE MEMORY USAGE
+                                      memCacheWidth:
+                                          300, // resize image in memory
+                                      memCacheHeight:
+                                          200, // resize image in memory
+                                      maxWidthDiskCache:
+                                          600, // limit cache size
+                                      maxHeightDiskCache: 400,
+                                    ),
                                   ),
                                 )
                                 : Container(
@@ -759,13 +788,14 @@ Widget tabScreen() {
                           children: [
                             Text(
                               item.name,
+                              textAlign: TextAlign.center,
+                              softWrap: true,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15.sp,
                                 color: Colors.black87,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
                             ),
                             SizedBox(height: 4.h),
                             Text(
@@ -1004,4 +1034,37 @@ Widget buildCopyright() {
     "© 2025 Blue Bite Restaurant. All Rights Reserved.",
     style: TextStyle(color: Colors.white70, fontSize: 13.sp),
   );
+}
+
+class FullScreenImageView extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImageView({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Container(
+        color: Colors.black.withOpacity(0.9),
+        child: Center(
+          child: InteractiveViewer(
+            panEnabled: true,
+            minScale: 0.8,
+            maxScale: 4.0,
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.contain,
+              placeholder:
+                  (context, url) =>
+                      CircularProgressIndicator(color: Colors.white),
+              errorWidget:
+                  (context, url, error) =>
+                      Icon(Icons.broken_image, color: Colors.white, size: 40),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
